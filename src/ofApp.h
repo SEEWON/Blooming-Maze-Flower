@@ -47,8 +47,6 @@ public:
 	bool genMaze();
 	bool setMaze();
 	void freeMemory();
-	bool DFS();
-	void dfsdraw();
 	bool BFS();
 	void bfsdraw();
 
@@ -77,7 +75,6 @@ public:
 	bool bShowInfo;
 	bool bFullscreen;
 	bool bTopmost;
-	bool isdfs;
 	int isbfs;
 	// Example functions
 	void doFullScreen(bool bFull);

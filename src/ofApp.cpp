@@ -10,9 +10,6 @@ using namespace std;
 int offset_x = 0; int offset_y = 0;
 
 int** maze_graph;//텍스트 파일의 모든 정보를 담는 이차원 배열이다.
-stack<pair<int, int>> s; //DFS 하는 stack
-vector<pair<int, int>> exact_dfs_path; //정확한 경로를 저장하는 vector
-vector<pair<pair<int, int>, pair<int, int>>> tried_dfs_path; //시도한 모든 경로를 저장하는 vector
 
 bool isbfs;
 queue<pair<int, int>> q; //BFS 하는 queue
@@ -21,6 +18,8 @@ vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로�
 
 bool gameStart = false;
 vector<string> gen_maze(41);
+
+
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -31,7 +30,7 @@ void ofApp::setup() {
 	// Get the window size for image loading
 	windowWidth = ofGetWidth();
 	windowHeight = ofGetHeight();
-	isdfs = isbfs = false;
+	isbfs = false;
 	isOpen = 0;
 	// Centre on the screen
 	ofSetWindowPosition((ofGetScreenWidth() - windowWidth) / 2, (ofGetScreenHeight() - windowHeight) / 2);
@@ -73,7 +72,6 @@ void ofApp::setup() {
 	// View popup menu
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
-	menu->AddPopupItem(hPopup, "Show DFS", false, false); // Checked
 	bTopmost = false; // app is topmost
 	menu->AddPopupItem(hPopup, "Show BFS", false, false); // Not checked (default)
 	bFullscreen = false; // not fullscreen yet
@@ -98,17 +96,7 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 	}
 
 	// Window menu
-	if (title == "Show DFS") {
-		isbfs = 0;
-		if (isOpen)
-			DFS();
-		else
-			cout << "you must Generate maze first" << endl;
-
-	}
-
 	if (title == "Show BFS") {
-		isdfs = 0;
 		if (isOpen)
 			BFS();
 		else
@@ -159,17 +147,6 @@ void ofApp::draw() {
 			else if (input[i][j] == '-')
 				ofDrawLine(offset_x + (j - 1) * 30, offset_y + i * 30, offset_x + (j + 1) * 30, offset_y + i * 30);
 		}
-	}
-
-	//DFS 탐색 경로 출력
-	if (isdfs)
-	{
-		ofSetColor(238, 238, 238);
-		ofSetLineWidth(5);
-		if (isOpen)
-			dfsdraw();
-		else
-			cout << "you must Generate maze first" << endl;
 	}
 
 	//BFS 탐색 경로 출력
@@ -516,15 +493,13 @@ bool ofApp::setMaze()
 {
 	isOpen = 1;
 	//새로운 미로 생성 시 기존 경로 초기화
-	isdfs = 0; isbfs = 0;
-	exact_dfs_path.clear();	tried_dfs_path.clear();
+	isbfs = 0;
 	exact_bfs_path.clear();	tried_bfs_path.clear();
-	while (!s.empty()) s.pop();
 	while (!q.empty()) q.pop();
 
 	HEIGHT = WIDTH = 0;
 	input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
-	maze_graph = (int**)malloc(sizeof(int*));	//BFS-DFS 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
+	maze_graph = (int**)malloc(sizeof(int*));	//BFS 탐색을 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
 	
 	cout << "Set a new maze as bit-form:" << endl;
 	for (int it = 0; it< gen_maze.size(); it++)
@@ -570,94 +545,6 @@ void ofApp::freeMemory() {
 	if (visited) {
 		for (int i = 0;i < HEIGHT;i++) free(visited[i]);
 		free(visited);
-	}
-}
-
-//DFS탐색을 하는 함수
-bool ofApp::DFS()
-{
-	//DFS탐색을 하는 함수 ( 3주차)
-	cout << "DFS start" << endl;
-
-	int R_col[4] = { 0, -1, 0, 1 };
-	int C_col[4] = { -1, 0, 1, 0 };
-
-	for (int i = 0;i < HEIGHT;i++) {
-		for (int j = 0;j < WIDTH;j++) {
-			visited[i][j] = 0;
-		}
-	}
-
-	pair<int, int> target = make_pair(HEIGHT - 2, WIDTH - 2);
-	visited[1][1] = 1;
-	s.push(make_pair(1, 1));
-	while (!s.empty()) {
-		int curr_R = s.top().first;
-		int curr_C = s.top().second;
-
-		//target 도달 시 break
-		if (curr_R == target.first && curr_C == target.second) break;
-
-		int flag = 0;
-		//네 가지 방향에 대해 방문하지 않았다면 stack과 tried_dfs_path에 push
-		for (int i = 0;i < 4;i++) {
-			int next_R = curr_R + R_col[i];
-			int next_C = curr_C + C_col[i];
-			if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH) continue;	//경계값 체크, 범위 벗어나면 pass
-
-			if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
-				flag = 1;
-				visited[next_R][next_C] = 1;
-				s.push(make_pair(next_R, next_C));
-				//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
-				if (next_R % 2 == 1 && next_C % 2 == 1) {
-					tried_dfs_path.push_back(make_pair(make_pair(curr_R, curr_C), make_pair(next_R, next_C)));
-				}
-			}
-		}
-		if (!flag) s.pop();
-	}
-
-	//Stack에 들어있는 경로 vector에 저장
-	while (!s.empty()) {
-		int r = s.top().first;
-		int c = s.top().second;
-		if (r % 2 == 1 && c % 2 == 1) exact_dfs_path.push_back(make_pair(r, c));
-		s.pop();
-	}
-	isdfs = 1;
-	return true;
-}
-
-//DFS 수행 결과를 그리는 함수
-void ofApp::dfsdraw()
-{
-	//시도한 모든 경로 그리기
-	for (int i = 0;i < tried_dfs_path.size();i++) {
-		int start_R = tried_dfs_path[i].first.first;
-		int start_C = tried_dfs_path[i].first.second;
-		int end_R = tried_dfs_path[i].second.first;
-		int end_C = tried_dfs_path[i].second.second;
-
-		//현재 경로 상에는 (경계선 -> 도착칸)만 경로로 저장되어 있다.
-		//따라서 출발 지점이 경계선이 아닌 (시작칸 -> 도착칸)이 될 수 있도록 시작점을 늘린다.
-		if (start_R == end_R) start_C -= end_C - start_C;
-		else start_R -= end_R - start_R;
-
-		ofDrawLine(offset_x + start_C * 30, offset_y + start_R * 30, offset_x + end_C * 30, offset_y + end_R * 30);
-	}
-
-	//도착 경로 그리기
-	ofSetColor(247, 215, 22);
-	for (int i = 0;i < exact_dfs_path.size() - 1;i++) {
-		int start_R = exact_dfs_path[i].first;
-		int start_C = exact_dfs_path[i].second;
-		int end_R = exact_dfs_path[i + 1].first;
-		int end_C = exact_dfs_path[i + 1].second;
-		//Show DFS -> Show BFS -> Show DFS 순으로 메뉴를 선택하는 경우, exact_dfs_path에 시작점-목표점을 한 번에 잇는 경로 생성 버그 예외처리
-		if (start_R != end_R && start_C != end_C) continue;
-
-		ofDrawLine(offset_x + start_C * 30, offset_y + start_R * 30, offset_x + end_C * 30, offset_y + end_R * 30);
 	}
 }
 
