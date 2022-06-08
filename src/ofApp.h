@@ -48,12 +48,8 @@ public:
 	void freeMemory();
 	bool DFS();
 	void dfsdraw();
-
-	//추가
 	bool BFS();
 	void bfsdraw();
-	int isbfs;
-	//여기까지
 
 	int HEIGHT;//미로의 높이
 	int WIDTH;//미로의 너비
@@ -81,6 +77,7 @@ public:
 	bool bFullscreen;
 	bool bTopmost;
 	bool isdfs;
+	int isbfs;
 	// Example functions
 	void doFullScreen(bool bFull);
 	void doTopmost(bool bTop);

@@ -48,6 +48,8 @@ queue<pair<int, int>> q; //BFS 하는 queue
 vector<pair<int, int>> exact_bfs_path; //정확한 경로를 저장하는 vector
 vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로를 저장하는 vector
 
+bool gameStart = false;
+
 //--------------------------------------------------------------
 void ofApp::setup() {
 
@@ -105,9 +107,7 @@ void ofApp::setup() {
 	menu->AddPopupSeparator(hPopup);
 	menu->AddPopupItem(hPopup, "Exit", false, false);
 
-	//
 	// View popup menu
-	//
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
 	bShowInfo = true;  // screen info display on
@@ -116,12 +116,6 @@ void ofApp::setup() {
 	menu->AddPopupItem(hPopup, "Show BFS", false, false); // Not checked (default)
 	bFullscreen = false; // not fullscreen yet
 	menu->AddPopupItem(hPopup, "Full screen", false, false); // Not checked and not auto-check
-
-	//
-	// Help popup menu
-	//
-	hPopup = menu->AddPopupMenu(hMenu, "Help");
-	menu->AddPopupItem(hPopup, "About", false, false); // No auto check
 
 	// Set the menu to the window
 	menu->SetWindowMenu();
@@ -184,13 +178,6 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 		doFullScreen(bFullscreen); // But als take action immediately
 	}
 
-	//
-	// Help menu
-	//
-	if (title == "About") {
-		ofSystemAlertDialog("ofxWinMenu\nbasic example\n\nhttp://spout.zeal.co");
-	}
-
 } // end appMenuFunction
 
 
@@ -205,8 +192,7 @@ void ofApp::draw() {
 
 	char str[256];
 	//ofBackground(0, 0, 0, 0);
-	ofSetColor(0, 173, 181);
-	ofSetLineWidth(5);
+	
 	int i, j;
 
 	// TO DO : DRAW MAZE; 
@@ -216,6 +202,23 @@ void ofApp::draw() {
 	offset_x = (1792 - WIDTH * 30) / 2;
 	offset_y = (1344 - HEIGHT * 30) / 2;
 
+	if (!isOpen) {
+		ofSetColor(236, 155, 59);
+		ofPushMatrix();
+		ofScale(3, 3);
+		myFont.drawString("Open .maz file to play game", 180, 215);
+		ofPopMatrix();
+	}
+	if (isOpen && !gameStart) {
+		ofSetColor(236, 155, 59);
+		ofPushMatrix();
+		ofScale(3, 3);
+		myFont.drawString("Press 'S' to start game", 195, 215);
+		ofPopMatrix();
+	}
+
+	ofSetColor(0, 173, 181);
+	ofSetLineWidth(5);
 	for (i = 0; i < HEIGHT; i++) {
 		for (j = 0; j < WIDTH; j++) {
 			if (input[i][j] == '|')
@@ -323,9 +326,8 @@ void ofApp::keyPressed(int key) {
 	if (key == ' ') {
 		bShowInfo = !bShowInfo;
 		// Update the menu check mark because the item state has been changed here
-		menu->SetPopupItem("Show BFS", bShowInfo);
-
-		menu->SetPopupItem("Show DFS", bShowInfo);
+		menu->SetPopupItem("Show BFS", false);
+		menu->SetPopupItem("Show DFS", false);
 	}
 
 	if (key == 'f') {
@@ -333,6 +335,10 @@ void ofApp::keyPressed(int key) {
 		doFullScreen(bFullscreen);
 		// Do not check this menu item
 		// If there is no menu when you call the SetPopupItem function it will crash
+	}
+
+	if (key == 's' || key == 'S') {
+		gameStart = 1;
 	}
 
 } // end keyPressed
