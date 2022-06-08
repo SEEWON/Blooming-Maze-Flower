@@ -1,31 +1,18 @@
-/*
-
-	ofxWinMenu basic example - ofApp.h
-
-	Copyright (C) 2016-2017 Lynn Jarvis.
-
-	http://www.spout.zeal.co
-
-	=========================================================================
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	=========================================================================
-*/
-
 #pragma once
 
 #include "ofMain.h"
-#include "ofxWinMenu.h" // Menu addon
+#include "ofxWinMenu.h"
+
+//해상도 관련
+
+//2560*1600 디스플레이 기준
+#define XS 30
+#define resolution_x 1792
+#define resolution_y 1344
+
+//#define XS 20
+//#define resolution_x 1024
+//#define resolution_y 768
 
 class ofApp : public ofBaseApp {
 
@@ -48,6 +35,8 @@ public:
 	bool setMaze();
 	void freeMemory();
 	void insertHeap(pair<int, pair<int, int>> insertElement);
+	void placeGem();
+	void drawGem();
 	bool BFS();
 	void bfsdraw();
 
@@ -77,6 +66,7 @@ public:
 	bool bFullscreen;
 	bool bTopmost;
 	int isbfs;
+	bool isGem;
 	// Example functions
 	void doFullScreen(bool bFull);
 	void doTopmost(bool bTop);

@@ -19,19 +19,21 @@ vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로�
 bool gameStart = false;
 vector<string> gen_maze(41);
 pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
+pair<int, pair<int, int>> gems[2000]; //first에는 gem의 색: 노랑 - 1, 초록 - 2, 파랑 - 3, second에는 좌표를 넣음
 int elementCnt = 0;
 
 
 //--------------------------------------------------------------
 void ofApp::setup() {
 
-	ofSetWindowTitle("Maze Game, Collect as much coin as you can!"); // Set the app name on the title bar
+	ofSetWindowTitle("GEM IT UP!"); // Set the app name on the title bar
 	ofSetFrameRate(15);
 	ofBackground(57, 62, 70);
 	// Get the window size for image loading
 	windowWidth = ofGetWidth();
 	windowHeight = ofGetHeight();
 	isbfs = false;
+	isGem = false;
 	isOpen = 0;
 	// Centre on the screen
 	ofSetWindowPosition((ofGetScreenWidth() - windowWidth) / 2, (ofGetScreenHeight() - windowHeight) / 2);
@@ -121,14 +123,13 @@ void ofApp::update() {
 //--------------------------------------------------------------
 void ofApp::draw() {
 
-	char str[256];
 	//ofBackground(0, 0, 0, 0);
 	
 	int i, j;
 
 	//저장된 자료구조를 이용해 미로를 그린다.
-	offset_x = (1792 - WIDTH * 30) / 2;
-	offset_y = (1344 - HEIGHT * 30) / 2 - 30;
+	offset_x = (resolution_x - WIDTH * XS) / 2;
+	offset_y = (resolution_y - HEIGHT * XS) / 2 - XS;
 
 	if (!isOpen) {
 		ofSetColor(236, 155, 59);
@@ -161,9 +162,10 @@ void ofApp::draw() {
 			cout << "you must Generate maze first" << endl;
 	}
 
+	if (isGem) drawGem();
+
 	ofSetColor(247, 215, 22);
-	sprintf(str, "Made by SEEWON, GitHub @SEEWON");
-	myFont.drawString(str, 15, ofGetHeight() - 20);
+	myFont.drawString("Made by SEEWON, GitHub @SEEWON", 15, ofGetHeight() - 20);
 
 } // end Draw
 
@@ -549,7 +551,7 @@ void ofApp::freeMemory() {
 	}
 }
 
-//Heap 구현
+//Heap에 삽입하는 함수 구현
 void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
 	elementCnt++;
 	int idx = elementCnt;
@@ -560,6 +562,60 @@ void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
 		idx /= 2;
 	}
 	max_heap[idx] = insertElement;
+}
+
+//Gem 배치
+void ofApp::placeGem()
+{
+	int t = elementCnt;
+	for (int i = 0;i < t;i++) {
+		cout << "t is: " << t << endl;
+
+		//Configure Gem data
+		int bfsD = max_heap[1].first;
+		int row = max_heap[1].second.first;
+		int col = max_heap[1].second.second;
+
+		gems[i] = make_pair(bfsD, make_pair(row, col));
+
+		pair<int, pair<int, int>> temp = max_heap[t];
+		max_heap[t--] = make_pair(0, make_pair(0, 0));
+
+		int parent = 1;
+		int child = 2;
+		while (child <= t) {
+			if ((child < t) && (max_heap[child].first < max_heap[child + 1].first)) child++;
+			if (max_heap[child].first <= temp.first) break;
+
+			max_heap[parent] = max_heap[child];
+			parent = child;
+			child *= 2;
+		}
+		max_heap[parent] = temp;
+	}
+	isGem = 1;
+}
+
+void ofApp::drawGem()
+{
+	for (int i = 0;i < elementCnt;i++) {
+		int bfsD = max_heap[i].first;
+		int row = max_heap[i].second.first;
+		int col = max_heap[i].second.second;
+
+		if (bfsD*1.3 > elementCnt) {
+			ofSetColor(19, 99, 223);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD * 4 > elementCnt) {
+			ofSetColor(28, 121, 71);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else {
+			ofSetColor(255, 228, 89);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+	}
 }
 
 //BFS탐색을 하는 함수
@@ -625,24 +681,8 @@ bool ofApp::BFS()
 		r = temp_r; c = temp_c;
 	}
 
-	int t = elementCnt;
-	for (int i = 0;i < t;i++) {
-		cout << "distance is: " << max_heap[1].first << " Coor is: " << max_heap[1].second.first << ' ' << max_heap[1].second.second << endl;
-		pair<int, pair<int, int>> temp = max_heap[elementCnt];
-		max_heap[elementCnt--] = make_pair(0, make_pair(0, 0));
-
-		int parent = 1;
-		int child = 2;
-		while (child <= elementCnt) {
-			if ((child < elementCnt) && (max_heap[child].first < max_heap[child + 1].first)) child++;
-			if (max_heap[child].first <= temp.first) break;
-
-			max_heap[parent] = max_heap[child];
-			parent = child;
-			child *= 2;
-		}
-		max_heap[parent] = temp;
-	}
+	//Gem 배치 함수 호출
+	placeGem();
 
 	//해당 함수에서 사용한 메모리 해제
 	for (int i = 0;i < HEIGHT;i++) {
@@ -669,7 +709,7 @@ void ofApp::bfsdraw()
 		if (start_R == end_R) start_C -= end_C - start_C;
 		else start_R -= end_R - start_R;
 
-		ofDrawLine(offset_x + start_C * 30, offset_y + start_R * 30, offset_x + end_C * 30, offset_y + end_R * 30);
+		ofDrawLine(offset_x + start_C * XS, offset_y + start_R * XS, offset_x + end_C * XS, offset_y + end_R * XS);
 	}
 
 	//도착 경로 그리기
@@ -682,7 +722,7 @@ void ofApp::bfsdraw()
 		//여러 메뉴 번갈아서 선택 시, exact_bfs_path에 시작점-목표점을 한 번에 잇는 경로 생성 버그 예외처리
 		if (start_R != end_R && start_C != end_C) continue;
 
-		ofDrawLine(offset_x + start_C * 30, offset_y + start_R * 30, offset_x + end_C * 30, offset_y + end_R * 30);
+		ofDrawLine(offset_x + start_C * XS, offset_y + start_R * XS, offset_x + end_C * XS, offset_y + end_R * XS);
 	}
 }
 

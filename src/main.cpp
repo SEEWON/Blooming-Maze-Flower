@@ -44,9 +44,7 @@ int main() {
 // for window without console
 //========================================================================
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-	//ofSetupOpenGL(640, 480, OF_WINDOW);			// <-------- setup the GL context
-	//ofSetupOpenGL(1024, 768, OF_WINDOW);
-	ofSetupOpenGL(1792, 1344, OF_WINDOW);
+	ofSetupOpenGL(resolution_x, resolution_y, OF_WINDOW);
 
 	// this kicks off the running of my app
 	// can be OF_WINDOW or OF_FULLSCREEN
