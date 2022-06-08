@@ -34,6 +34,8 @@
 #include <vector>
 #include <stack>
 #include <queue>
+#include <ctime>
+#include <string>
 using namespace std;
 
 int offset_x = 0; int offset_y = 0;
@@ -49,6 +51,7 @@ vector<pair<int, int>> exact_bfs_path; //정확한 경로를 저장하는 vector
 vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로를 저장하는 vector
 
 bool gameStart = false;
+vector<string> gen_maze(41);
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -100,9 +103,6 @@ void ofApp::setup() {
 	// Add popup items to the File menu
 	//
 
-	// Open an maze file
-	menu->AddPopupItem(hPopup, "Open", false, false); // Not checked and not auto-checked
-
 	// Final File popup menu item is "Exit" - add a separator before it
 	menu->AddPopupSeparator(hPopup);
 	menu->AddPopupItem(hPopup, "Exit", false, false);
@@ -138,9 +138,6 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 	//
 	// File menu
 	//
-	if (title == "Open") {
-		readFile();
-	}
 	if (title == "Exit") {
 		ofExit(); // Quit the application
 	}
@@ -206,9 +203,10 @@ void ofApp::draw() {
 		ofSetColor(236, 155, 59);
 		ofPushMatrix();
 		ofScale(3, 3);
-		myFont.drawString("Open .maz file to play game", 180, 215);
+		myFont.drawString("Press 'S' to start game", 180, 215);
 		ofPopMatrix();
 	}
+	/*
 	if (isOpen && !gameStart) {
 		ofSetColor(236, 155, 59);
 		ofPushMatrix();
@@ -216,6 +214,7 @@ void ofApp::draw() {
 		myFont.drawString("Press 'S' to start game", 195, 215);
 		ofPopMatrix();
 	}
+	*/
 
 	ofSetColor(0, 173, 181);
 	ofSetLineWidth(5);
@@ -338,7 +337,8 @@ void ofApp::keyPressed(int key) {
 	}
 
 	if (key == 's' || key == 'S') {
-		gameStart = 1;
+		//gameStart = 1;
+		genMaze();
 	}
 
 } // end keyPressed
@@ -382,106 +382,258 @@ void ofApp::gotMessage(ofMessage msg) {
 void ofApp::dragEvent(ofDragInfo dragInfo) {
 
 }
-bool ofApp::readFile()
+
+bool ofApp::genMaze() 
 {
+	int i, j;
+	int N, M;
+	int areaCnt = 0;
+	srand(time(NULL));
+
+	//N*M, 미로의 크기 설정
+	N = 20; M = 20;
+
+	//영역, 경계에 관한 2차원 배열 2개 동적 할당
+	int** area = (int**)malloc(sizeof(int*) * M);
+	for (i = 0; i < M; i++) {
+		area[i] = (int*)malloc(sizeof(int) * N);
+	}
+	int** H_border = (int**)malloc(sizeof(int*) * (M + 1));
+	for (i = 0; i < M + 1; i++) {
+		H_border[i] = (int*)malloc(sizeof(int) * N);
+	}
+	int** V_border = (int**)malloc(sizeof(int*) * M);
+	for (i = 0; i < M; i++) {
+		V_border[i] = (int*)malloc(sizeof(int) * (N + 1));
+	}
+
+	//미로의 첫 번째 줄 초기화
+	for (j = 0; j < N + 1; j++) {
+		V_border[0][j] = 1;
+		if (j < N) {
+			H_border[0][j] = 1;
+			area[0][j] = ++areaCnt;
+		}
+	}
+
+	//첫 번째 줄 벽뚫기
+	for (j = 0; j < N + 1; j++) {
+		if (j == 0 || j == N)
+			V_border[0][j] = 1;
+		else {
+			//첫 번째 줄은 무조건 오른쪽 칸과 다름
+			int spread = rand() % 2;
+			if (spread) {
+				V_border[0][j] = 0;
+				area[0][j] = area[0][j - 1];
+			}
+			else
+				V_border[0][j] = 1;
+		}
+	}
+
+	for (i = 0; i < M - 1; i++) {
+		int flag = 0;
+		for (j = 0; j < N + 1; j++) {
+			// H_border 관련 연산(마지막 열 제외)
+			if (j < N) {
+				int spread;
+
+				//새로운 영역 왔을 땐 flag 초기화
+				if (j > 0) {
+					if (area[i][j - 1] != area[i][j]) flag = 0;
+				}
+
+				//이번이 마지막이라서 무조건 spread해야하는 경우
+				if (!flag && j < N - 1) {
+					if (area[i][j] != area[i][j + 1])
+						spread = 1;
+					else
+						spread = rand() % 2;
+				}
+				else if (!flag && j == N - 1)
+					spread = 1;
+				//아닌 경우 임의로 spread하도록
+				else
+					spread = rand() % 2;
+				if (spread) {
+					H_border[i + 1][j] = 0;
+					// area[i + 1][j] = area[i][j];
+					//이전 값을 갖는 모든 영역 값 바꿔주기
+					for (int m = 0; m < M; m++) {
+						for (int n = 0; n < N; n++) {
+							if (area[m][n] == area[i + 1][j]) area[m][n] = area[i][j];
+						}
+					}
+					flag = 1;
+				}
+				else {
+					H_border[i + 1][j] = 1;
+					area[i + 1][j] = ++areaCnt;
+				}
+			}
+
+			// V_border 관련 연산(마지막 행 제외)
+			if (i < M - 2) {
+				if (j == 0 || j == N)
+					V_border[i + 1][j] = 1;
+				else {
+					//왼쪽 영역과 다른 경우 임의로 결정
+					if (area[i + 1][j - 1] != area[i + 1][j]) {
+						int spread = rand() % 2;
+						if (spread) {
+							V_border[i + 1][j] = 0;
+							// area[i + 1][j] = area[i + 1][j - 1];
+							//이전 값을 갖는 모든 영역 값 바꿔주기
+							for (int m = 0; m < M; m++) {
+								for (int n = 0; n < N; n++) {
+									if (area[m][n] == area[i + 1][j])
+										area[m][n] = area[i + 1][j - 1];
+								}
+							}
+						}
+						else
+							V_border[i + 1][j] = 1;
+					}
+					//좌우 인접 영역과 같은 경우 제거X
+					else {
+						V_border[i + 1][j] = 1;
+					}
+				}
+			}
+		}
+	}
+
+	//마지막 행의 V_border 관련 연산
+	for (j = 0; j < N + 1; j++) {
+		if (j == 0 || j == N)
+			V_border[M - 1][j] = 1;
+		else {
+			//왼쪽 영역과 다른 무조건 벽 뚫음
+			if (area[M - 1][j - 1] != area[M - 1][j]) {
+				V_border[M - 1][j] = 0;
+				// area[M - 1][j] = area[M - 1][j - 1];
+				//이전 값을 갖는 모든 영역 값 바꿔주기
+				for (int m = 0; m < M; m++) {
+					for (int n = 0; n < N; n++) {
+						if (area[m][n] == area[M - 1][j]) area[m][n] = area[M - 1][j - 1];
+					}
+				}
+			}
+			//좌우 인접 영역과 같은 경우 제거X
+			else {
+				V_border[M - 1][j] = 1;
+			}
+		}
+	}
+	//마지막 열의 H_border 관련 연산
+	for (j = 0; j < N; j++) {
+		H_border[M][j] = 1;
+	}
+
+	int vectorCnt = 0;
+	//형식에 맞게 출력
+	for (i = 0; i < M; i++) {
+		for (j = 0; j < N; j++) {
+			gen_maze[vectorCnt] += "+";
+			if (H_border[i][j])
+				gen_maze[vectorCnt] += "-";
+			else
+				gen_maze[vectorCnt] += " ";
+		}
+		gen_maze[vectorCnt] += "+";
+		vectorCnt++;
+		for (j = 0; j < N + 1; j++) {
+			if (V_border[i][j])
+				gen_maze[vectorCnt] += "|";
+			else
+				gen_maze[vectorCnt] += " ";
+			if (j != N) gen_maze[vectorCnt] += " ";
+		}
+		vectorCnt++;
+	}
+	for (j = 0; j < N; j++) {
+		gen_maze[vectorCnt] += "+";
+		if (H_border[i][j])
+			gen_maze[vectorCnt] += "-";
+		else
+			gen_maze[vectorCnt] += " ";
+	}
+	gen_maze[vectorCnt] += "+";
+
+	//동적 할당 메모리 해제
+	for (i = 0; i < M; i++) {
+		free(area[i]);
+	}
+	free(area);
+	for (i = 0; i < M + 1; i++) {
+		free(H_border[i]);
+	}
+	free(H_border);
+	for (i = 0; i < M; i++) {
+		free(V_border[i]);
+	}
+	free(V_border);
+
+	//DEBUG CODE
+	cout << "Generated a new maze :" << endl;
+	for (int it = 0; it < gen_maze.size();it++) {
+		cout << gen_maze[it] << endl;
+	}
+
+	setMaze();
+	return true;
+}
+
+//생성한 미로를 적절한 자료구조로 저장하는 함수
+bool ofApp::setMaze()
+{
+	isOpen = 1;
 	//새로운 파일을 열었을 경우 기존 경로 초기화
 	isdfs = 0; isbfs = 0;
 	exact_dfs_path.clear();	tried_dfs_path.clear();
 	exact_bfs_path.clear();	tried_bfs_path.clear();
 	while (!s.empty()) s.pop();
 	while (!q.empty()) q.pop();
-	ofFileDialogResult openFileResult = ofSystemLoadDialog("Select .maz file", false);
-	string filePath;
-	size_t pos;
-	// Check whether the user opened a file
-	if (openFileResult.bSuccess) {
-		ofLogVerbose("User selected a file");
-		//We have a file, check it and process it
-		string fileName = openFileResult.getName();
-		//string fileName = "maze0.maz";
-		printf("file name is %s\n", fileName);
-		filePath = openFileResult.getPath();
-		printf("Open\n");
-		pos = filePath.find_last_of(".");
-		if (pos != string::npos && pos != 0 && filePath.substr(pos + 1) == "maz") {
 
-			ofFile file(fileName);
-			if (!file.exists()) {
-				cout << "Target file does not exists." << endl;
-				return false;
-			}
-			else {
-				cout << "We found the target file." << endl;
-				isOpen = 1;
-			}
+	HEIGHT = WIDTH = 0;
+	input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
+	maze_graph = (int**)malloc(sizeof(int*));	//BFS-DFS 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
 
-			ofBuffer buffer(file);
+	for (int it = 0; it< gen_maze.size(); it++)
+	{
+		string line = gen_maze[it];
+		//첫 번째 loop에서 WIDTH 정보 저장
+		if (it ==0 ) WIDTH = line.length();
 
-			// Input_flag is a variable for indication the type of input.
-			// If input_flag is zero, then work of line input is progress.
-			// If input_flag is one, then work of dot input is progress.
-			int input_flag = 0;
-
-			// Idx is a variable for index of array.
-			int idx = 0;
-
-			// Read file line by line
-			int cnt = 0;
-
-
-			// TO DO
-			// .maz 파일을 input으로 받아서 적절히 자료구조에 넣는다
-			HEIGHT = WIDTH = 0;
-			input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
-			maze_graph = (int**)malloc(sizeof(int*));	//BFS-DFS 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
-			//Buffer에서 한 줄 단위로 파일 읽음
-			for (ofBuffer::Line it = buffer.getLines().begin(), end = buffer.getLines().end(); it != end; ++it)
-			{
-				string line = *it;
-				//첫 번째 loop에서 WIDTH 정보 저장
-				if (it == buffer.getLines().begin()) WIDTH = line.length();
-
-				//새 줄 입력받을 때마다 미로 정보 저장 array size 재할당
-				input = (char**)realloc(input, sizeof(char*) * (HEIGHT + 1));
-				maze_graph = (int**)realloc(maze_graph, sizeof(int*) * (HEIGHT + 1));
-				input[HEIGHT] = (char*)malloc(sizeof(char)*WIDTH);
-				maze_graph[HEIGHT] = (int*)malloc(sizeof(int)*WIDTH);
-				//하나의 행 읽어서 저장
-				for (int i = 0;i < WIDTH;i++) {
-					input[HEIGHT][i] = line[i];
-					if (line[i] == ' ') maze_graph[HEIGHT][i] = 0;
-					else maze_graph[HEIGHT][i] = 1;
-				}
-
-				/*
-				//input이 잘 저장되고 있는지 출력하는 Debug code
-				for (int i = 0;i < WIDTH;i++) {
-					cout << input[HEIGHT][i];
-				}
-				cout << endl;
-				*/
-				//maze_graph이 잘 저장되는지 출력하는 Debug code
-				for (int i = 0;i < WIDTH;i++) {
-					cout << maze_graph[HEIGHT][i];
-				}
-				cout << endl;
-				HEIGHT++;
-			}
-			cout << "WIDTH is: " << WIDTH << " HEIGHT is: " << HEIGHT << endl;
-
-			//미로 다 읽은 후 HEIGHT*WIDTH만큼 visited 메모리 할당
-			visited = (int**)malloc(sizeof(int*)*HEIGHT);
-			for (int i = 0;i < HEIGHT;i++) visited[i] = (int*)malloc(sizeof(int)*WIDTH);
+		//새 줄 입력받을 때마다 미로 정보 저장 array size 재할당
+		input = (char**)realloc(input, sizeof(char*) * (HEIGHT + 1));
+		maze_graph = (int**)realloc(maze_graph, sizeof(int*) * (HEIGHT + 1));
+		input[HEIGHT] = (char*)malloc(sizeof(char)*WIDTH);
+		maze_graph[HEIGHT] = (int*)malloc(sizeof(int)*WIDTH);
+		//하나의 행 읽어서 저장
+		for (int i = 0;i < WIDTH;i++) {
+			input[HEIGHT][i] = line[i];
+			if (line[i] == ' ') maze_graph[HEIGHT][i] = 0;
+			else maze_graph[HEIGHT][i] = 1;
 		}
-		else {
-			printf("  Needs a '.maz' extension\n");
-			return false;
+
+		//maze_graph이 잘 저장되는지 출력하는 Debug code
+		for (int i = 0;i < WIDTH;i++) {
+			cout << maze_graph[HEIGHT][i];
 		}
+		cout << endl;
+		HEIGHT++;
 	}
-}
-void ofApp::freeMemory() {
+	cout << "WIDTH is: " << WIDTH << " HEIGHT is: " << HEIGHT << endl;
 
-	//TO DO
+	//미로 다 읽은 후 HEIGHT*WIDTH만큼 visited 메모리 할당
+	visited = (int**)malloc(sizeof(int*)*HEIGHT);
+	for (int i = 0;i < HEIGHT;i++) visited[i] = (int*)malloc(sizeof(int)*WIDTH);
+	return true;
+}
+
+void ofApp::freeMemory() {
 	// malloc한 memory를 free해주는 함수
 	for (int i = 0;i < HEIGHT;i++) {
 		free(input[i]);
@@ -494,6 +646,7 @@ void ofApp::freeMemory() {
 		free(visited);
 	}
 }
+
 
 bool ofApp::DFS()//DFS탐색을 하는 함수
 {
