@@ -11,12 +11,8 @@ int offset_x = 0; int offset_y = 0;
 
 int** maze_graph;//텍스트 파일의 모든 정보를 담는 이차원 배열이다.
 
-bool isbfs;
 queue<pair<int, int>> q; //BFS 하는 queue
-vector<pair<int, int>> exact_bfs_path; //정확한 경로를 저장하는 vector
-vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로를 저장하는 vector
 
-bool gameStart = false;
 vector<string> gen_maze(41);
 pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
 int bfs_dis[50][50] = { 0 };
@@ -111,12 +107,23 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 
 //--------------------------------------------------------------
 void ofApp::update() {
+	/*
+	//숨쉬기 효과
 	dotScale += 0.2;		//always
 	if (dotGrowFlag) {		//if flag
 		dotScale -= 0.4;
 	}
 	if (dotScale < 10) dotGrowFlag = 0;
 	if (dotScale > 15) dotGrowFlag = 1;
+	*/
+
+	//커지는 효과
+	if(isGem) dotScale += 0.3;
+
+	if (dotScale > 13) {
+		mazeRegen();
+	}
+
 }
 
 
@@ -135,7 +142,7 @@ void ofApp::draw() {
 		ofSetColor(236, 155, 59);
 		ofPushMatrix();
 		ofScale(3, 3);
-		myFont.drawString("Press 'S' to start game", 180, 215);
+		myFont.drawString("Press 'S' to start Graphic", 180, 215);
 		ofPopMatrix();
 	}
 
@@ -151,17 +158,7 @@ void ofApp::draw() {
 		}
 	}
 
-	//BFS 탐색 경로 출력
-	if (isbfs)
-	{
-		ofSetColor(238, 238, 238);
-		ofSetLineWidth(5);
-		if (isOpen)
-			bfsdraw();
-		else
-			cout << "you must Generate maze first" << endl;
-	}
-
+	//점 출력
 	if (isGem) drawGem();
 
 	ofSetColor(247, 215, 22);
@@ -244,7 +241,6 @@ void ofApp::keyPressed(int key) {
 
 	if (key == 's' || key == 'S') {
 		genMaze();
-		gameStart = true;
 	}
 
 } // end keyPressed
@@ -497,7 +493,6 @@ bool ofApp::setMaze()
 	isOpen = 1;
 	//새로운 미로 생성 시 기존 경로 초기화
 	isbfs = 0;
-	exact_bfs_path.clear();	tried_bfs_path.clear();
 	while (!q.empty()) q.pop();
 
 	HEIGHT = WIDTH = 0;
@@ -686,7 +681,7 @@ bool ofApp::BFS()
 			distance++;
 			q.pop();
 
-			//네 가지 방향에 대해 방문하지 않았다면 queue과 tried_bfs_path에 push
+			//네 가지 방향에 대해 방문하지 않았다면 queue에 push
 			for (int i = 0;i < 4;i++) {
 				int next_R = curr_R + R_col[i];
 				int next_C = curr_C + C_col[i];
@@ -719,35 +714,11 @@ bool ofApp::BFS()
 	return true;
 }
 
-//BFS 수행 결과를 그리는 함수
-void ofApp::bfsdraw()
+void ofApp::mazeRegen()
 {
-	//시도한 모든 경로 그리기
-	for (int i = 0;i < tried_bfs_path.size();i++) {
-		int start_R = tried_bfs_path[i].first.first;
-		int start_C = tried_bfs_path[i].first.second;
-		int end_R = tried_bfs_path[i].second.first;
-		int end_C = tried_bfs_path[i].second.second;
-
-		//현재 경로 상에는 (경계선 -> 도착칸)만 경로로 저장되어 있다.
-		//따라서 출발 지점이 경계선이 아닌 (시작칸 -> 도착칸)이 될 수 있도록 시작점을 늘린다.
-		if (start_R == end_R) start_C -= end_C - start_C;
-		else start_R -= end_R - start_R;
-
-		ofDrawLine(offset_x + start_C * XS, offset_y + start_R * XS, offset_x + end_C * XS, offset_y + end_R * XS);
-	}
-
-	//도착 경로 그리기
-	ofSetColor(247, 215, 22);
-	for (int i = 0;i < exact_bfs_path.size() - 1;i++) {
-		int start_R = exact_bfs_path[i].first;
-		int start_C = exact_bfs_path[i].second;
-		int end_R = exact_bfs_path[i + 1].first;
-		int end_C = exact_bfs_path[i + 1].second;
-		//여러 메뉴 번갈아서 선택 시, exact_bfs_path에 시작점-목표점을 한 번에 잇는 경로 생성 버그 예외처리
-		if (start_R != end_R && start_C != end_C) continue;
-
-		ofDrawLine(offset_x + start_C * XS, offset_y + start_R * XS, offset_x + end_C * XS, offset_y + end_R * XS);
-	}
+	//전역 변수 초기화
+	//dotScale = 10;
+	//elementCnt = 0;
+	//미로 재생성
+	//genMaze();
 }
-

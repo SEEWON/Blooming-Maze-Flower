@@ -38,7 +38,7 @@ public:
 	void placeGem();
 	void drawGem();
 	bool BFS();
-	void bfsdraw();
+	void mazeRegen();
 
 	int HEIGHT;//미로의 높이
 	int WIDTH;//미로의 너비
@@ -65,7 +65,7 @@ public:
 	bool bShowInfo;
 	bool bFullscreen;
 	bool bTopmost;
-	int isbfs;
+	bool isbfs;
 	bool isGem;
 	// Example functions
 	void doFullScreen(bool bFull);
