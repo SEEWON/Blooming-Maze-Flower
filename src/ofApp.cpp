@@ -19,6 +19,7 @@ vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로�
 bool gameStart = false;
 vector<string> gen_maze(41);
 pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
+int bfs_dis[50][50] = { 0 };
 pair<int, pair<int, int>> gems[2000]; //first에는 gem의 색: 노랑 - 1, 초록 - 2, 파랑 - 3, second에는 좌표를 넣음
 int elementCnt = 0;
 
@@ -100,8 +101,7 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 
 	// Window menu
 	if (title == "Show All Path") {
-		if (isOpen)
-			BFS();
+		if (isOpen) isbfs = !isbfs;
 		else
 			cout << "you must Generate maze first" << endl;
 	}
@@ -534,6 +534,8 @@ bool ofApp::setMaze()
 	//미로 다 읽은 후 HEIGHT*WIDTH만큼 visited 메모리 할당
 	visited = (int**)malloc(sizeof(int*)*HEIGHT);
 	for (int i = 0;i < HEIGHT;i++) visited[i] = (int*)malloc(sizeof(int)*WIDTH);
+
+	BFS();
 	return true;
 }
 
@@ -568,13 +570,13 @@ void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
 void ofApp::placeGem()
 {
 	int t = elementCnt;
-	for (int i = 0;i < t;i++) {
-		cout << "t is: " << t << endl;
-
+	cout << elementCnt << endl;
+	for (int i = 0;i < elementCnt; i++) {
 		//Configure Gem data
 		int bfsD = max_heap[1].first;
 		int row = max_heap[1].second.first;
 		int col = max_heap[1].second.second;
+		cout << "bfs_dis is: " << bfsD << " row is: " << row << " col is: " << col << endl;
 
 		gems[i] = make_pair(bfsD, make_pair(row, col));
 
@@ -598,21 +600,58 @@ void ofApp::placeGem()
 
 void ofApp::drawGem()
 {
-	for (int i = 0;i < elementCnt;i++) {
-		int bfsD = max_heap[i].first;
-		int row = max_heap[i].second.first;
-		int col = max_heap[i].second.second;
+	float D1 = gems[1].first * 0.1;
+	float D2 = gems[1].first * 0.2;
+	float D3 = gems[1].first * 0.3;
+	float D4 = gems[1].first * 0.4;
+	float D5 = gems[1].first * 0.5;
+	float D6 = gems[1].first * 0.6;
+	float D7 = gems[1].first * 0.7;
+	float D8 = gems[1].first * 0.8;
+	float D9 = gems[1].first * 0.9;
+	for (int i = 0;i < elementCnt; i++) {
+		int bfsD = gems[i].first;
+		int row = gems[i].second.first;
+		int col = gems[i].second.second;
 
-		if (bfsD*1.3 > elementCnt) {
-			ofSetColor(19, 99, 223);
+		if (bfsD > D9) {
+			ofSetColor(179, 57, 57);
 			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
 		}
-		else if (bfsD * 4 > elementCnt) {
-			ofSetColor(28, 121, 71);
+		else if (bfsD  > D8) {
+			ofSetColor(255, 82, 82);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D7) {
+			ofSetColor(205, 97, 51);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D6) {
+			ofSetColor(255, 121, 63);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D5) {
+			ofSetColor(204, 142, 53);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D4) {
+			ofSetColor(255, 177, 66);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D3) {
+			ofSetColor(204, 174, 98);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D2) {
+			ofSetColor(255, 218, 121);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+		}
+		else if (bfsD > D1) {
+			ofSetColor(170, 166, 157);
 			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
 		}
 		else {
-			ofSetColor(255, 228, 89);
+			ofSetColor(247, 241, 227);
 			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
 		}
 	}
@@ -624,51 +663,69 @@ bool ofApp::BFS()
 	int R_col[4] = { 0, 1, 0, -1 };
 	int C_col[4] = { 1, 0, -1, 0 };
 	pair<int, int> **parent = (pair<int, int>**)malloc(sizeof(pair<int, int>*)*HEIGHT);
+
 	for (int i = 0;i < HEIGHT;i++) {
 		parent[i] = (pair<int, int>*)malloc(sizeof(pair<int, int>)*WIDTH);
 	}
 
-	for (int i = 0;i < HEIGHT;i++) {
-		for (int j = 0;j < WIDTH;j++) {
-			visited[i][j] = 0;
-			parent[i][j] = make_pair(0, 0);
+	//parent[1][1] = make_pair(-1, -1);
+
+
+	//네 꼭짓점에 대해 반복
+	pair<int, int> start[4] = { make_pair(1, 1), make_pair(1, WIDTH - 2), make_pair(HEIGHT - 2, WIDTH - 2), make_pair(HEIGHT - 2, 1) };
+	pair<int, int> target[4] = { make_pair(HEIGHT - 2, WIDTH - 2), make_pair(HEIGHT - 2, 1), make_pair(1, 1), make_pair(1, WIDTH - 2) };
+
+	for (int it = 0; it < 4; it++) {
+		while (!q.empty()) q.pop();
+		for (int i = 0;i < HEIGHT;i++) {
+			for (int j = 0;j < WIDTH;j++) {
+				visited[i][j] = 0;
+				parent[i][j] = make_pair(0, 0);
+			}
 		}
-	}
-	parent[1][1] = make_pair(-1, -1);
 
-	pair<int, int> target = make_pair(HEIGHT - 2, WIDTH - 2);
-	visited[1][1] = 1;
-	q.push(make_pair(1, 1));
+		visited[start[it].first][start[it].second] = 1;
+		q.push(make_pair(start[it].first, start[it].second));
 
-	int distance = 1;
-	while (!q.empty()) {
-		int curr_R = q.front().first;
-		int curr_C = q.front().second;
-		distance++;
+		int distance = 1;
+		bfs_dis[start[it].first][start[it].second] += distance;
+		while (!q.empty()) {
+			int curr_R = q.front().first;
+			int curr_C = q.front().second;
+			distance++;
+			q.pop();
 
-		q.pop();
+			//네 가지 방향에 대해 방문하지 않았다면 queue과 tried_bfs_path에 push
+			for (int i = 0;i < 4;i++) {
+				int next_R = curr_R + R_col[i];
+				int next_C = curr_C + C_col[i];
+				if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH) continue;	//경계값 체크, 범위 벗어나면 pass
 
-		//네 가지 방향에 대해 방문하지 않았다면 queue과 tried_bfs_path에 push
-		for (int i = 0;i < 4;i++) {
-			int next_R = curr_R + R_col[i];
-			int next_C = curr_C + C_col[i];
-			if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH) continue;	//경계값 체크, 범위 벗어나면 pass
-
-			//아직 방문하지 않았고, 이동할 수 있는 미로인 경우
-			if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
-				parent[next_R][next_C] = make_pair(curr_R, curr_C);		//exact path 확인을 위해 부모 표시
-				visited[next_R][next_C] = 1;							//방문 표시
-				q.push(make_pair(next_R, next_C));						//enqueue
-				//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
-				if (next_R % 2 == 1 && next_C % 2 == 1) {
-					insertHeap(make_pair(distance, make_pair(next_R, next_C))); //BFS distance를 확인하기 위해 heap에 삽입
-					tried_bfs_path.push_back(make_pair(make_pair(curr_R, curr_C), make_pair(next_R, next_C)));
+				//아직 방문하지 않았고, 이동할 수 있는 미로인 경우
+				if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
+					//parent[next_R][next_C] = make_pair(curr_R, curr_C);		//exact path 확인을 위해 부모 표시
+					visited[next_R][next_C] = 1;							//방문 표시
+					q.push(make_pair(next_R, next_C));						//enqueue
+					//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
+					if (next_R % 2 == 1 && next_C % 2 == 1) {
+						bfs_dis[next_R][next_C] += distance;
+						//tried_bfs_path.push_back(make_pair(make_pair(curr_R, curr_C), make_pair(next_R, next_C)));
+					}
 				}
 			}
 		}
 	}
 
+	for (int i = 0;i < HEIGHT;i++) {
+		for (int j = 0;j < WIDTH;j++) {
+			if (i % 2 == 1 && j % 2 == 1) {
+				insertHeap(make_pair(bfs_dis[i][j], make_pair(i, j)));
+			}
+		}
+	}
+
 	//exact path 표현부
+	/*
 	int r = target.first;
 	int c = target.second;
 	while (r>0 && c>0) {
@@ -680,6 +737,7 @@ bool ofApp::BFS()
 		int temp_c = parent[r][c].second;
 		r = temp_r; c = temp_c;
 	}
+	*/
 
 	//Gem 배치 함수 호출
 	placeGem();
@@ -690,7 +748,6 @@ bool ofApp::BFS()
 	}
 	free(parent);
 
-	isbfs = 1;
 	return true;
 }
 
