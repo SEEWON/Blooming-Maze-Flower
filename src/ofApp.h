@@ -47,6 +47,7 @@ public:
 	bool genMaze();
 	bool setMaze();
 	void freeMemory();
+	void insertHeap(pair<int, pair<int, int>> insertElement);
 	bool BFS();
 	void bfsdraw();
 

@@ -18,13 +18,14 @@ vector<pair<pair<int, int>, pair<int, int>>> tried_bfs_path; //시도한 모든 경로�
 
 bool gameStart = false;
 vector<string> gen_maze(41);
-
+pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
+int elementCnt = 0;
 
 
 //--------------------------------------------------------------
 void ofApp::setup() {
 
-	ofSetWindowTitle("Maze Example"); // Set the app name on the title bar
+	ofSetWindowTitle("Maze Game, Collect as much coin as you can!"); // Set the app name on the title bar
 	ofSetFrameRate(15);
 	ofBackground(57, 62, 70);
 	// Get the window size for image loading
@@ -73,7 +74,7 @@ void ofApp::setup() {
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
 	bTopmost = false; // app is topmost
-	menu->AddPopupItem(hPopup, "Show BFS", false, false); // Not checked (default)
+	menu->AddPopupItem(hPopup, "Show All Path", false, false); // Not checked (default)
 	bFullscreen = false; // not fullscreen yet
 	menu->AddPopupItem(hPopup, "Full screen", false, false); // Not checked and not auto-check
 
@@ -96,7 +97,7 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 	}
 
 	// Window menu
-	if (title == "Show BFS") {
+	if (title == "Show All Path") {
 		if (isOpen)
 			BFS();
 		else
@@ -548,11 +549,22 @@ void ofApp::freeMemory() {
 	}
 }
 
+//Heap 구현
+void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
+	elementCnt++;
+	int idx = elementCnt;
+
+	//max_heap에 Element 삽입
+	while (insertElement.first > max_heap[idx / 2].first && idx != 1) {
+		max_heap[idx] = max_heap[idx / 2];
+		idx /= 2;
+	}
+	max_heap[idx] = insertElement;
+}
+
 //BFS탐색을 하는 함수
 bool ofApp::BFS()
 {
-	cout << "BFS start" << endl;
-
 	int R_col[4] = { 0, 1, 0, -1 };
 	int C_col[4] = { 1, 0, -1, 0 };
 	pair<int, int> **parent = (pair<int, int>**)malloc(sizeof(pair<int, int>*)*HEIGHT);
@@ -571,12 +583,13 @@ bool ofApp::BFS()
 	pair<int, int> target = make_pair(HEIGHT - 2, WIDTH - 2);
 	visited[1][1] = 1;
 	q.push(make_pair(1, 1));
+
+	int distance = 1;
 	while (!q.empty()) {
 		int curr_R = q.front().first;
 		int curr_C = q.front().second;
+		distance++;
 
-		//target 도달 시 break
-		if (curr_R == target.first && curr_C == target.second) break;
 		q.pop();
 
 		//네 가지 방향에 대해 방문하지 않았다면 queue과 tried_bfs_path에 push
@@ -585,17 +598,21 @@ bool ofApp::BFS()
 			int next_C = curr_C + C_col[i];
 			if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH) continue;	//경계값 체크, 범위 벗어나면 pass
 
+			//아직 방문하지 않았고, 이동할 수 있는 미로인 경우
 			if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
-				parent[next_R][next_C] = make_pair(curr_R, curr_C);
-				visited[next_R][next_C] = 1;
-				q.push(make_pair(next_R, next_C));
+				parent[next_R][next_C] = make_pair(curr_R, curr_C);		//exact path 확인을 위해 부모 표시
+				visited[next_R][next_C] = 1;							//방문 표시
+				q.push(make_pair(next_R, next_C));						//enqueue
 				//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
 				if (next_R % 2 == 1 && next_C % 2 == 1) {
+					insertHeap(make_pair(distance, make_pair(next_R, next_C))); //BFS distance를 확인하기 위해 heap에 삽입
 					tried_bfs_path.push_back(make_pair(make_pair(curr_R, curr_C), make_pair(next_R, next_C)));
 				}
 			}
 		}
 	}
+
+	//exact path 표현부
 	int r = target.first;
 	int c = target.second;
 	while (r>0 && c>0) {
@@ -608,13 +625,32 @@ bool ofApp::BFS()
 		r = temp_r; c = temp_c;
 	}
 
-	isbfs = 1;
+	int t = elementCnt;
+	for (int i = 0;i < t;i++) {
+		cout << "distance is: " << max_heap[1].first << " Coor is: " << max_heap[1].second.first << ' ' << max_heap[1].second.second << endl;
+		pair<int, pair<int, int>> temp = max_heap[elementCnt];
+		max_heap[elementCnt--] = make_pair(0, make_pair(0, 0));
+
+		int parent = 1;
+		int child = 2;
+		while (child <= elementCnt) {
+			if ((child < elementCnt) && (max_heap[child].first < max_heap[child + 1].first)) child++;
+			if (max_heap[child].first <= temp.first) break;
+
+			max_heap[parent] = max_heap[child];
+			parent = child;
+			child *= 2;
+		}
+		max_heap[parent] = temp;
+	}
 
 	//해당 함수에서 사용한 메모리 해제
 	for (int i = 0;i < HEIGHT;i++) {
 		free(parent[i]);
 	}
 	free(parent);
+
+	isbfs = 1;
 	return true;
 }
 
@@ -649,3 +685,4 @@ void ofApp::bfsdraw()
 		ofDrawLine(offset_x + start_C * 30, offset_y + start_R * 30, offset_x + end_C * 30, offset_y + end_R * 30);
 	}
 }
+
