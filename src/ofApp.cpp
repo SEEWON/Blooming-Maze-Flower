@@ -22,6 +22,8 @@ pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는
 int bfs_dis[50][50] = { 0 };
 pair<int, pair<int, int>> gems[2000]; //first에는 gem의 색: 노랑 - 1, 초록 - 2, 파랑 - 3, second에는 좌표를 넣음
 int elementCnt = 0;
+float dotScale = 10;
+bool dotGrowFlag = 0;
 
 
 //--------------------------------------------------------------
@@ -77,7 +79,6 @@ void ofApp::setup() {
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
 	bTopmost = false; // app is topmost
-	menu->AddPopupItem(hPopup, "Show All Path", false, false); // Not checked (default)
 	bFullscreen = false; // not fullscreen yet
 	menu->AddPopupItem(hPopup, "Full screen", false, false); // Not checked and not auto-check
 
@@ -100,12 +101,6 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 	}
 
 	// Window menu
-	if (title == "Show All Path") {
-		if (isOpen) isbfs = !isbfs;
-		else
-			cout << "you must Generate maze first" << endl;
-	}
-
 	if (title == "Full screen") {
 		bFullscreen = !bFullscreen; // Not auto-checked and also used in the keyPressed function
 		doFullScreen(bFullscreen); // But als take action immediately
@@ -116,7 +111,12 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-
+	dotScale += 0.2;		//always
+	if (dotGrowFlag) {		//if flag
+		dotScale -= 0.4;
+	}
+	if (dotScale < 10) dotGrowFlag = 0;
+	if (dotScale > 15) dotGrowFlag = 1;
 }
 
 
@@ -140,7 +140,7 @@ void ofApp::draw() {
 	}
 
 	//미로 틀 출력
-	ofSetColor(0, 173, 181);
+	ofSetColor(42, 179, 146);
 	ofSetLineWidth(5);
 	for (i = 0; i < HEIGHT; i++) {
 		for (j = 0; j < WIDTH; j++) {
@@ -576,7 +576,6 @@ void ofApp::placeGem()
 		int bfsD = max_heap[1].first;
 		int row = max_heap[1].second.first;
 		int col = max_heap[1].second.second;
-		cout << "bfs_dis is: " << bfsD << " row is: " << row << " col is: " << col << endl;
 
 		gems[i] = make_pair(bfsD, make_pair(row, col));
 
@@ -613,46 +612,47 @@ void ofApp::drawGem()
 		int bfsD = gems[i].first;
 		int row = gems[i].second.first;
 		int col = gems[i].second.second;
+		
 
 		if (bfsD > D9) {
 			ofSetColor(179, 57, 57);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD  > D8) {
 			ofSetColor(255, 82, 82);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D7) {
 			ofSetColor(205, 97, 51);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D6) {
 			ofSetColor(255, 121, 63);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D5) {
 			ofSetColor(204, 142, 53);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D4) {
 			ofSetColor(255, 177, 66);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D3) {
 			ofSetColor(204, 174, 98);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D2) {
 			ofSetColor(255, 218, 121);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else if (bfsD > D1) {
 			ofSetColor(170, 166, 157);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 		else {
 			ofSetColor(247, 241, 227);
-			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, 10);
+			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
 	}
 }
@@ -662,14 +662,6 @@ bool ofApp::BFS()
 {
 	int R_col[4] = { 0, 1, 0, -1 };
 	int C_col[4] = { 1, 0, -1, 0 };
-	pair<int, int> **parent = (pair<int, int>**)malloc(sizeof(pair<int, int>*)*HEIGHT);
-
-	for (int i = 0;i < HEIGHT;i++) {
-		parent[i] = (pair<int, int>*)malloc(sizeof(pair<int, int>)*WIDTH);
-	}
-
-	//parent[1][1] = make_pair(-1, -1);
-
 
 	//네 꼭짓점에 대해 반복
 	pair<int, int> start[4] = { make_pair(1, 1), make_pair(1, WIDTH - 2), make_pair(HEIGHT - 2, WIDTH - 2), make_pair(HEIGHT - 2, 1) };
@@ -680,7 +672,6 @@ bool ofApp::BFS()
 		for (int i = 0;i < HEIGHT;i++) {
 			for (int j = 0;j < WIDTH;j++) {
 				visited[i][j] = 0;
-				parent[i][j] = make_pair(0, 0);
 			}
 		}
 
@@ -703,13 +694,11 @@ bool ofApp::BFS()
 
 				//아직 방문하지 않았고, 이동할 수 있는 미로인 경우
 				if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
-					//parent[next_R][next_C] = make_pair(curr_R, curr_C);		//exact path 확인을 위해 부모 표시
 					visited[next_R][next_C] = 1;							//방문 표시
 					q.push(make_pair(next_R, next_C));						//enqueue
 					//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
 					if (next_R % 2 == 1 && next_C % 2 == 1) {
 						bfs_dis[next_R][next_C] += distance;
-						//tried_bfs_path.push_back(make_pair(make_pair(curr_R, curr_C), make_pair(next_R, next_C)));
 					}
 				}
 			}
@@ -724,29 +713,8 @@ bool ofApp::BFS()
 		}
 	}
 
-	//exact path 표현부
-	/*
-	int r = target.first;
-	int c = target.second;
-	while (r>0 && c>0) {
-		exact_bfs_path.push_back(make_pair(r, c));
-
-		if (r % 2 == 1 && c % 2 == 1) {
-		}
-		int temp_r = parent[r][c].first;
-		int temp_c = parent[r][c].second;
-		r = temp_r; c = temp_c;
-	}
-	*/
-
 	//Gem 배치 함수 호출
 	placeGem();
-
-	//해당 함수에서 사용한 메모리 해제
-	for (int i = 0;i < HEIGHT;i++) {
-		free(parent[i]);
-	}
-	free(parent);
 
 	return true;
 }
