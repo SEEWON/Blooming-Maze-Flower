@@ -1,34 +1,3 @@
-/*
-
-	ofxWinMenu basic example - ofApp.cpp
-
-	Example of using ofxWinMenu addon to create a menu for a Microsoft Windows application.
-
-	Copyright (C) 2016-2017 Lynn Jarvis.
-
-	https://github.com/leadedge
-
-	http://www.spout.zeal.co
-
-	=========================================================================
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	=========================================================================
-
-	03.11.16 - minor comment cleanup
-	21.02.17 - rebuild for OF 0.9.8
-
-*/
 #include "ofApp.h"
 #include <iostream>
 #include <vector>
@@ -79,9 +48,7 @@ void ofApp::setup() {
 	// Disable escape key exit so we can exit fullscreen with Escape (see keyPressed)
 	ofSetEscapeQuitsApp(false);
 
-	//
 	// Create a menu using ofxWinMenu
-	//
 
 	// A new menu object with a pointer to this class
 	menu = new ofxWinMenu(this, hWnd);
@@ -94,14 +61,10 @@ void ofApp::setup() {
 	// Create a window menu
 	HMENU hMenu = menu->CreateWindowMenu();
 
-	//
 	// Create a "File" popup menu
-	//
 	HMENU hPopup = menu->AddPopupMenu(hMenu, "File");
 
-	//
 	// Add popup items to the File menu
-	//
 
 	// Final File popup menu item is "Exit" - add a separator before it
 	menu->AddPopupSeparator(hPopup);
@@ -110,7 +73,6 @@ void ofApp::setup() {
 	// View popup menu
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
-	bShowInfo = true;  // screen info display on
 	menu->AddPopupItem(hPopup, "Show DFS", false, false); // Checked
 	bTopmost = false; // app is topmost
 	menu->AddPopupItem(hPopup, "Show BFS", false, false); // Not checked (default)
@@ -123,51 +85,34 @@ void ofApp::setup() {
 } // end Setup
 
 
-//
 // Menu function
-//
-// This function is called by ofxWinMenu when an item is selected.
-// The the title and state can be checked for required action.
-// 
 void ofApp::appMenuFunction(string title, bool bChecked) {
 
 	ofFileDialogResult result;
 	string filePath;
 	size_t pos;
 
-	//
 	// File menu
-	//
 	if (title == "Exit") {
 		ofExit(); // Quit the application
 	}
 
-	//
 	// Window menu
-	//
 	if (title == "Show DFS") {
-		//bShowInfo = bChecked;  // Flag is used elsewhere in Draw()
 		isbfs = 0;
 		if (isOpen)
-		{
 			DFS();
-			bShowInfo = bChecked;
-		}
 		else
-			cout << "you must open file first" << endl;
+			cout << "you must Generate maze first" << endl;
 
 	}
 
 	if (title == "Show BFS") {
-		doTopmost(bChecked); // Use the checked value directly
 		isdfs = 0;
 		if (isOpen)
-		{
 			BFS();
-			bShowInfo = bChecked;
-		}
 		else
-			cout << "you must open file first" << endl;
+			cout << "you must Generate maze first" << endl;
 	}
 
 	if (title == "Full screen") {
@@ -192,12 +137,9 @@ void ofApp::draw() {
 	
 	int i, j;
 
-	// TO DO : DRAW MAZE; 
-	// 저장된 자료구조를 이용해 미로를 그린다.
-	// add code here
-
+	//저장된 자료구조를 이용해 미로를 그린다.
 	offset_x = (1792 - WIDTH * 30) / 2;
-	offset_y = (1344 - HEIGHT * 30) / 2;
+	offset_y = (1344 - HEIGHT * 30) / 2 - 30;
 
 	if (!isOpen) {
 		ofSetColor(236, 155, 59);
@@ -206,16 +148,8 @@ void ofApp::draw() {
 		myFont.drawString("Press 'S' to start game", 180, 215);
 		ofPopMatrix();
 	}
-	/*
-	if (isOpen && !gameStart) {
-		ofSetColor(236, 155, 59);
-		ofPushMatrix();
-		ofScale(3, 3);
-		myFont.drawString("Press 'S' to start game", 195, 215);
-		ofPopMatrix();
-	}
-	*/
 
+	//미로 틀 출력
 	ofSetColor(0, 173, 181);
 	ofSetLineWidth(5);
 	for (i = 0; i < HEIGHT; i++) {
@@ -227,6 +161,7 @@ void ofApp::draw() {
 		}
 	}
 
+	//DFS 탐색 경로 출력
 	if (isdfs)
 	{
 		ofSetColor(238, 238, 238);
@@ -234,9 +169,10 @@ void ofApp::draw() {
 		if (isOpen)
 			dfsdraw();
 		else
-			cout << "You must open file first" << endl;
+			cout << "you must Generate maze first" << endl;
 	}
 
+	//BFS 탐색 경로 출력
 	if (isbfs)
 	{
 		ofSetColor(238, 238, 238);
@@ -244,14 +180,12 @@ void ofApp::draw() {
 		if (isOpen)
 			bfsdraw();
 		else
-			cout << "You must open file first" << endl;
+			cout << "you must Generate maze first" << endl;
 	}
 
-	if (bShowInfo) {
-		// Show keyboard duplicates of menu functions
-		sprintf(str, " comsil project");
-		myFont.drawString(str, 15, ofGetHeight() - 20);
-	}
+	ofSetColor(247, 215, 22);
+	sprintf(str, "Made by SEEWON, GitHub @SEEWON");
+	myFont.drawString(str, 15, ofGetHeight() - 20);
 
 } // end Draw
 
@@ -321,14 +255,6 @@ void ofApp::keyPressed(int key) {
 		}
 	}
 
-	// Remove or show screen info
-	if (key == ' ') {
-		bShowInfo = !bShowInfo;
-		// Update the menu check mark because the item state has been changed here
-		menu->SetPopupItem("Show BFS", false);
-		menu->SetPopupItem("Show DFS", false);
-	}
-
 	if (key == 'f') {
 		bFullscreen = !bFullscreen;
 		doFullScreen(bFullscreen);
@@ -337,8 +263,8 @@ void ofApp::keyPressed(int key) {
 	}
 
 	if (key == 's' || key == 'S') {
-		//gameStart = 1;
 		genMaze();
+		gameStart = true;
 	}
 
 } // end keyPressed
@@ -561,7 +487,7 @@ bool ofApp::genMaze()
 	}
 	gen_maze[vectorCnt] += "+";
 
-	//동적 할당 메모리 해제
+	//해당 함수에서 사용한 동적 할당 메모리 해제
 	for (i = 0; i < M; i++) {
 		free(area[i]);
 	}
@@ -589,7 +515,7 @@ bool ofApp::genMaze()
 bool ofApp::setMaze()
 {
 	isOpen = 1;
-	//새로운 파일을 열었을 경우 기존 경로 초기화
+	//새로운 미로 생성 시 기존 경로 초기화
 	isdfs = 0; isbfs = 0;
 	exact_dfs_path.clear();	tried_dfs_path.clear();
 	exact_bfs_path.clear();	tried_bfs_path.clear();
@@ -599,7 +525,8 @@ bool ofApp::setMaze()
 	HEIGHT = WIDTH = 0;
 	input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
 	maze_graph = (int**)malloc(sizeof(int*));	//BFS-DFS 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
-
+	
+	cout << "Set a new maze as bit-form:" << endl;
 	for (int it = 0; it< gen_maze.size(); it++)
 	{
 		string line = gen_maze[it];
@@ -625,7 +552,6 @@ bool ofApp::setMaze()
 		cout << endl;
 		HEIGHT++;
 	}
-	cout << "WIDTH is: " << WIDTH << " HEIGHT is: " << HEIGHT << endl;
 
 	//미로 다 읽은 후 HEIGHT*WIDTH만큼 visited 메모리 할당
 	visited = (int**)malloc(sizeof(int*)*HEIGHT);
@@ -647,10 +573,9 @@ void ofApp::freeMemory() {
 	}
 }
 
-
-bool ofApp::DFS()//DFS탐색을 하는 함수
+//DFS탐색을 하는 함수
+bool ofApp::DFS()
 {
-	//TO DO
 	//DFS탐색을 하는 함수 ( 3주차)
 	cout << "DFS start" << endl;
 
@@ -692,6 +617,8 @@ bool ofApp::DFS()//DFS탐색을 하는 함수
 		}
 		if (!flag) s.pop();
 	}
+
+	//Stack에 들어있는 경로 vector에 저장
 	while (!s.empty()) {
 		int r = s.top().first;
 		int c = s.top().second;
@@ -702,12 +629,10 @@ bool ofApp::DFS()//DFS탐색을 하는 함수
 	return true;
 }
 
+//DFS 수행 결과를 그리는 함수
 void ofApp::dfsdraw()
 {
-	//TO DO 
-	//DFS를 수행한 결과를 그린다. (3주차 내용)
-
-	//전체 경로 그리기
+	//시도한 모든 경로 그리기
 	for (int i = 0;i < tried_dfs_path.size();i++) {
 		int start_R = tried_dfs_path[i].first.first;
 		int start_C = tried_dfs_path[i].first.second;
@@ -736,10 +661,9 @@ void ofApp::dfsdraw()
 	}
 }
 
-bool ofApp::BFS()//BFS탐색을 하는 함수
+//BFS탐색을 하는 함수
+bool ofApp::BFS()
 {
-	//TO DO
-	//BFS탐색을 하는 함수 (3주차 과제)
 	cout << "BFS start" << endl;
 
 	int R_col[4] = { 0, 1, 0, -1 };
@@ -788,7 +712,6 @@ bool ofApp::BFS()//BFS탐색을 하는 함수
 	int r = target.first;
 	int c = target.second;
 	while (r>0 && c>0) {
-		cout << "now exact path is " << r << ' ' << c << endl;
 		exact_bfs_path.push_back(make_pair(r, c));
 
 		if (r % 2 == 1 && c % 2 == 1) {
@@ -797,24 +720,21 @@ bool ofApp::BFS()//BFS탐색을 하는 함수
 		int temp_c = parent[r][c].second;
 		r = temp_r; c = temp_c;
 	}
-	cout << "parent of 2, 1 is; " << parent[2][1].first << parent[2][1].second << endl;
 
 	isbfs = 1;
 
+	//해당 함수에서 사용한 메모리 해제
 	for (int i = 0;i < HEIGHT;i++) {
 		free(parent[i]);
 	}
 	free(parent);
-
 	return true;
 }
 
+//BFS 수행 결과를 그리는 함수
 void ofApp::bfsdraw()
 {
-	//TO DO 
-	//BFS를 수행한 결과를 그린다. (3주차 과제 내용)
-
-	//전체 경로 그리기
+	//시도한 모든 경로 그리기
 	for (int i = 0;i < tried_bfs_path.size();i++) {
 		int start_R = tried_bfs_path[i].first.first;
 		int start_C = tried_bfs_path[i].first.second;
