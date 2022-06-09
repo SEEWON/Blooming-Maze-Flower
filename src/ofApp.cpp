@@ -13,25 +13,24 @@ int** maze_graph;//텍스트 파일의 모든 정보를 담는 이차원 배열이다.
 
 queue<pair<int, int>> q; //BFS 하는 queue
 
-vector<string> gen_maze(41);
+string gen_maze[41];
 pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
 int bfs_dis[50][50] = { 0 };
-pair<int, pair<int, int>> gems[2000]; //first에는 gem의 색: 노랑 - 1, 초록 - 2, 파랑 - 3, second에는 좌표를 넣음
+pair<int, pair<int, int>> gems[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
 int elementCnt = 0;
-float dotScale = 10;
+float dotScale = 15;
 bool dotGrowFlag = 0;
 
 
 //--------------------------------------------------------------
 void ofApp::setup() {
 
-	ofSetWindowTitle("GEM IT UP!"); // Set the app name on the title bar
+	ofSetWindowTitle("Blooming Maze Flower"); // Set the app name on the title bar
 	ofSetFrameRate(15);
 	ofBackground(57, 62, 70);
 	// Get the window size for image loading
 	windowWidth = ofGetWidth();
 	windowHeight = ofGetHeight();
-	isbfs = false;
 	isGem = false;
 	isOpen = 0;
 	// Centre on the screen
@@ -120,7 +119,7 @@ void ofApp::update() {
 	//커지는 효과
 	if(isGem) dotScale += 0.3;
 
-	if (dotScale > 13) {
+	if (dotScale > 20) {
 		mazeRegen();
 	}
 
@@ -142,7 +141,7 @@ void ofApp::draw() {
 		ofSetColor(236, 155, 59);
 		ofPushMatrix();
 		ofScale(3, 3);
-		myFont.drawString("Press 'S' to start Graphic", 180, 215);
+		myFont.drawString("Press 'S' to start Blooming", 180, 215);
 		ofPopMatrix();
 	}
 
@@ -479,7 +478,7 @@ bool ofApp::genMaze()
 
 	//DEBUG CODE
 	cout << "Generated a new maze :" << endl;
-	for (int it = 0; it < gen_maze.size();it++) {
+	for (int it = 0; it < 41;it++) {
 		cout << gen_maze[it] << endl;
 	}
 
@@ -491,16 +490,16 @@ bool ofApp::genMaze()
 bool ofApp::setMaze()
 {
 	isOpen = 1;
-	//새로운 미로 생성 시 기존 경로 초기화
-	isbfs = 0;
+	//새로운 미로 생성 시 기존 큐 초기화
 	while (!q.empty()) q.pop();
 
 	HEIGHT = WIDTH = 0;
 	input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
 	maze_graph = (int**)malloc(sizeof(int*));	//BFS 탐색을 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
 	
+	int gen_maze_size = 41;
 	cout << "Set a new maze as bit-form:" << endl;
-	for (int it = 0; it< gen_maze.size(); it++)
+	for (int it = 0; it< gen_maze_size; it++)
 	{
 		string line = gen_maze[it];
 		//첫 번째 loop에서 WIDTH 정보 저장
@@ -716,9 +715,21 @@ bool ofApp::BFS()
 
 void ofApp::mazeRegen()
 {
-	//전역 변수 초기화
-	//dotScale = 10;
-	//elementCnt = 0;
+	//전역 변수 및 메모리 초기화
+	freeMemory();
+	for (int i = 0;i < 41;i++) {
+		gen_maze[i] = "";
+	}
+	for (int i = 0;i < 2000;i++) {
+		max_heap[i] = make_pair(0, make_pair(0, 0));
+		gems[i] = make_pair(0, make_pair(0, 0));
+	}
+	//memset(max_heap, 0, sizeof(max_heap));
+	//memset(gems, 0, sizeof(gems));
+	memset(bfs_dis, 0, sizeof(bfs_dis));
+	elementCnt = 0;
+	dotScale = 15;
+	dotGrowFlag = 0;
 	//미로 재생성
-	//genMaze();
+	genMaze();
 }

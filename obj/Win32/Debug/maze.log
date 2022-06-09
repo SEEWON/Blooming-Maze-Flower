@@ -3,11 +3,10 @@
 c:\of_v0.11.2_vs2017_release\libs\openframeworks\utils\ofutils.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
 c:\of_v0.11.2_vs2017_release\libs\openframeworks\math\ofvec3f.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
 c:\of_v0.11.2_vs2017_release\libs\openframeworks\math\ofvec2f.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
-c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(41): warning C4996: 'ofTrueTypeFont::loadFont': Use load instead
+c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(40): warning C4996: 'ofTrueTypeFont::loadFont': Use load instead
   c:\of_v0.11.2_vs2017_release\libs\openframeworks\graphics\oftruetypefont.h(193): note: 'ofTrueTypeFont::loadFont' 선언을 참조하십시오.
-c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(92): warning C4101: 'pos' :참조되지 않은 지역 변수입니다.
-c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(482): warning C4018: '<': signed 또는 unsigned가 일치하지 않습니다.
-c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(503): warning C4018: '<': signed 또는 unsigned가 일치하지 않습니다.
+c:\of_v0.11.2_vs2017_release\apps\myapps\maze\src\ofapp.cpp(91): warning C4101: 'pos' :참조되지 않은 지역 변수입니다.
+     bin\maze_debug.lib 라이브러리 및 bin\maze_debug.exp 개체를 생성하고 있습니다.
   maze.vcxproj -> C:\of_v0.11.2_vs2017_release\apps\myApps\maze\bin\maze_debug.exe
   
   	                   2	C:\of_v0.11.2_vs2017_release\libs\fmod\lib\vs\Win32\
