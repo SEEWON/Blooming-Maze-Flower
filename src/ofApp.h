@@ -18,6 +18,7 @@ class ofApp : public ofBaseApp {
 
 public:
 
+	//openFrameworks의 base 함수들이다.
 	void setup();
 	void update();
 	void draw();
@@ -31,14 +32,15 @@ public:
 	void windowResized(int w, int h);
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
-	bool genMaze();
-	bool setMaze();
-	void freeMemory();
-	void insertHeap(pair<int, pair<int, int>> insertElement);
-	void placeGem();
-	void drawGem();
-	bool BFS();
-	void mazeRegen();
+	bool genMaze(); //Eller's algorithm을 적용해 mage를 generate하는 함수이다.
+	bool setMaze(); //생성한 미로를 적절한 자료구조에 저장하는 함수이다.
+	void freeMemory(); //사용한 메모리를 해제하는 함수이다.
+	void insertHeap(pair<int, pair<int, int>> insertElement); //BFS distance와 미로의 좌표를 삽입해 Heap을 구성하는 함수이다.
+	void placeGem(); //Heap sort를 수행해, 내림차순으로 정렬된 결과를 gems 변수에 저장하는 함수이다.
+	void drawGem(); //화면에 Gem을 직접 출력하는 함수이다. BFS distance에 따라 10개 색으로 나누어 출력한다.
+	bool BFS(); // BFS탐색을 수행해 결과를 자료구조에 저장하는 함수이다.
+	void assignBFSDtoHeap(); //BFS 탐색 결과를 Heap에 삽입하는 함수
+	void mazeRegen(); //다시 새로운 미로를 생성하기 위한 초기화 및 미로 재생성 함수
 
 	int HEIGHT;//미로의 높이
 	int WIDTH;//미로의 너비

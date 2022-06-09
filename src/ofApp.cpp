@@ -1,36 +1,35 @@
-#include "ofApp.h"
-#include <iostream>
-#include <vector>
-#include <stack>
-#include <queue>
 #include <ctime>
+#include <iostream>
+#include <queue>
+#include <stack>
 #include <string>
+#include <vector>
+
+#include "ofApp.h"
 using namespace std;
 
-int offset_x = 0; int offset_y = 0;
+//화면 해상도에 따라 출력 위치를 조정하기 위한 offset 변수
+int offset_x = 0;
+int offset_y = 0;
 
-int** maze_graph;//텍스트 파일의 모든 정보를 담는 이차원 배열이다.
+int** maze_graph;							//생성되는 미로 정보를 bit-form(0/1)으로 저장하는 2차원 배열
+queue<pair<int, int>> q;					//BFS 탐색을 수행하는 queue
+string gen_maze[41];						//Eller's algorithm으로 생성한 미로 정보를 담는 배열
+int bfs_dis[50][50] = { 0 };				//미로의 각 좌표별로 BFS_distance를 담는 2차원 배열
+pair<int, pair<int, int>> max_heap[2000];	//first에는 BFS_distance, second에는 미로의 좌표를 담는 Max heap
+pair<int, pair<int, int>> gems[2000];		//Heap sort의 결과를 받아, 각 Gem의 BFS_Distance를 내림차순으로 저장
+int elementCnt = 0;							//Heap sort에 사용되는 원소의 개수 저장
 
-queue<pair<int, int>> q; //BFS 하는 queue
-
-string gen_maze[41];
-pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
-int bfs_dis[50][50] = { 0 };
-pair<int, pair<int, int>> gems[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
-int elementCnt = 0;
-
-//Animation 관련 변수
-float dotScale = 15;
-bool dotDwindleFlag = false;
-bool growRapid = false;
-int bounceCnt = 0;
-int startCnt = 0;
-
+// Animation 관련 변수
+float dotScale = 15;				//현재 한 점의 크기
+bool dotDwindleFlag = false;		//점 크기를 감소시키기 위한 flag
+bool growRapid = false;				//점 크기를 급증시키기 위한 flag
+int bounceCnt = 0;					//점이 몇 번 반짝였는지
+int startCnt = 0;					//애니메이션이 시작하고 흐른 시간
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-
-	ofSetWindowTitle("Blooming Maze Flower"); // Set the app name on the title bar
+	ofSetWindowTitle("Blooming Maze Flower");  // Set the app name on the title bar
 	ofSetFrameRate(15);
 	ofBackground(57, 62, 70);
 	// Get the window size for image loading
@@ -39,18 +38,20 @@ void ofApp::setup() {
 	isGem = false;
 	isOpen = 0;
 	// Centre on the screen
-	ofSetWindowPosition((ofGetScreenWidth() - windowWidth) / 2, (ofGetScreenHeight() - windowHeight) / 2);
+	ofSetWindowPosition((ofGetScreenWidth() - windowWidth) / 2,
+		(ofGetScreenHeight() - windowHeight) / 2);
 
 	// Load a font rather than the default
 	myFont.loadFont("verdana.ttf", 12, true, true);
 
 	// Load an image for the example
-	//myImage.loadImage("lighthouse.jpg");
+	// myImage.loadImage("lighthouse.jpg");
 
 	// Window handle used for topmost function
 	hWnd = WindowFromDC(wglGetCurrentDC());
 
-	// Disable escape key exit so we can exit fullscreen with Escape (see keyPressed)
+	// Disable escape key exit so we can exit fullscreen with Escape (see
+	// keyPressed)
 	ofSetEscapeQuitsApp(false);
 
 	// Create a menu using ofxWinMenu
@@ -59,7 +60,7 @@ void ofApp::setup() {
 	menu = new ofxWinMenu(this, hWnd);
 
 	// Register an ofApp function that is called when a menu item is selected.
-	// The function can be called anything but must exist. 
+	// The function can be called anything but must exist.
 	// See the example "appMenuFunction".
 	menu->CreateMenuFunction(&ofApp::appMenuFunction);
 
@@ -78,79 +79,67 @@ void ofApp::setup() {
 	// View popup menu
 	hPopup = menu->AddPopupMenu(hMenu, "View");
 
-	bTopmost = false; // app is topmost
-	bFullscreen = false; // not fullscreen yet
-	menu->AddPopupItem(hPopup, "Full screen", false, false); // Not checked and not auto-check
+	bTopmost = false;     // app is topmost
+	bFullscreen = false;  // not fullscreen yet
+	menu->AddPopupItem(hPopup, "Full screen", false, false);  // Not checked and not auto-check
 
-	// Set the menu to the window
-	menu->SetWindowMenu();
+	menu->SetWindowMenu(); // Set the menu to the window
 
-} // end Setup
-
+}  // end Setup
 
 // Menu function
 void ofApp::appMenuFunction(string title, bool bChecked) {
-
 	ofFileDialogResult result;
 	string filePath;
-	size_t pos;
 
 	// File menu
 	if (title == "Exit") {
-		ofExit(); // Quit the application
+		ofExit();  // Quit the application
 	}
 
 	// Window menu
 	if (title == "Full screen") {
-		bFullscreen = !bFullscreen; // Not auto-checked and also used in the keyPressed function
-		doFullScreen(bFullscreen); // But als take action immediately
+		bFullscreen = !bFullscreen;  // Not auto-checked and also used in the
+									 // keyPressed function
+		doFullScreen(bFullscreen);   // But als take action immediately
 	}
 
-} // end appMenuFunction
-
+}  // end appMenuFunction
 
 //--------------------------------------------------------------
 void ofApp::update() {
 	if (isGem) {
 		startCnt++;
-
-		if (10 < startCnt) {		//잼들이 반짝일 시간 간격
-
+		if (10 < startCnt) {		//점들이 반짝일 시간 간격
 			if (bounceCnt > 2) {
 				growRapid = true;
 			}
-			//Bloom 효과
+			// Bloom 효과
 			if (growRapid) dotScale += 3;
 			if (dotScale > 70) dotScale += 6;
-			if (dotScale > 150) {
+			if (dotScale > 130) {
 				mazeRegen();
 			}
-
 			//숨쉬기 효과
-			dotScale += 0.4;		//always
-			if (dotDwindleFlag) {		//if flag
+			dotScale += 0.4;       // always
+			if (dotDwindleFlag) {  // if flag
 				dotScale -= 0.81;
 			}
-			if (dotScale >= 18.2) {	//반짝일 때 얼마만큼 커지는지
+			if (dotScale >= 18.2) {  //한번 반짝일 때 얼마만큼 커지는지
 				dotDwindleFlag = 1;
 			}
 			if (dotScale < 15) {
 				dotDwindleFlag = 0;
 				bounceCnt++;
 				startCnt = 0;
-				cout << bounceCnt << endl;
+				cout << "Bounce count is: " << bounceCnt << endl;
 			}
-
 		}
 	}
 }
 
-
 //--------------------------------------------------------------
 void ofApp::draw() {
-
-	//ofBackground(0, 0, 0, 0);
-	
 	int i, j;
 
 	//저장된 자료구조를 이용해 미로를 그린다.
@@ -171,9 +160,11 @@ void ofApp::draw() {
 	for (i = 0; i < HEIGHT; i++) {
 		for (j = 0; j < WIDTH; j++) {
 			if (input[i][j] == '|')
-				ofDrawLine(offset_x + j * 30, offset_y + (i - 1) * 30, offset_x + j * 30, offset_y + (i + 1) * 30);
+				ofDrawLine(offset_x + j * 30, offset_y + (i - 1) * 30,
+					offset_x + j * 30, offset_y + (i + 1) * 30);
 			else if (input[i][j] == '-')
-				ofDrawLine(offset_x + (j - 1) * 30, offset_y + i * 30, offset_x + (j + 1) * 30, offset_y + i * 30);
+				ofDrawLine(offset_x + (j - 1) * 30, offset_y + i * 30,
+					offset_x + (j + 1) * 30, offset_y + i * 30);
 		}
 	}
 
@@ -183,11 +174,9 @@ void ofApp::draw() {
 	ofSetColor(247, 215, 22);
 	myFont.drawString("Made by SEEWON, GitHub @SEEWON", 15, ofGetHeight() - 20);
 
-} // end Draw
+}  // end Draw
 
-
-void ofApp::doFullScreen(bool bFull)
-{
+void ofApp::doFullScreen(bool bFull) {
 	// Enter full screen
 	if (bFull) {
 		// Remove the menu but don't destroy it
@@ -205,18 +194,17 @@ void ofApp::doFullScreen(bool bFull)
 		// Restore the window size allowing for the menu
 		ofSetWindowShape(windowWidth, windowHeight + GetSystemMetrics(SM_CYMENU));
 		// Centre on the screen
-		ofSetWindowPosition((ofGetScreenWidth() - ofGetWidth()) / 2, (ofGetScreenHeight() - ofGetHeight()) / 2);
+		ofSetWindowPosition((ofGetScreenWidth() - ofGetWidth()) / 2,
+			(ofGetScreenHeight() - ofGetHeight()) / 2);
 		// Show the cursor again
 		ofShowCursor();
 		// Restore topmost state
 		if (bTopmost) doTopmost(true);
 	}
 
-} // end doFullScreen
+}  // end doFullScreen
 
-
-void ofApp::doTopmost(bool bTop)
-{
+void ofApp::doTopmost(bool bTop) {
 	if (bTop) {
 		// get the current top window for return
 		hWndForeground = GetForegroundWindow();
@@ -229,16 +217,16 @@ void ofApp::doTopmost(bool bTop)
 		ShowWindow(hWnd, SW_SHOW);
 		// Reset the window that was topmost before
 		if (GetWindowLong(hWndForeground, GWL_EXSTYLE) & WS_EX_TOPMOST)
-			SetWindowPos(hWndForeground, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+			SetWindowPos(hWndForeground, HWND_TOPMOST, 0, 0, 0, 0,
+				SWP_NOMOVE | SWP_NOSIZE);
 		else
-			SetWindowPos(hWndForeground, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+			SetWindowPos(hWndForeground, HWND_TOP, 0, 0, 0, 0,
+				SWP_NOMOVE | SWP_NOSIZE);
 	}
-} // end doTopmost
-
+}  // end doTopmost
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
-
 	// Escape key exit has been disabled but it can be checked here
 	if (key == VK_ESCAPE) {
 		// Disable fullscreen set, otherwise quit the application as usual
@@ -262,57 +250,42 @@ void ofApp::keyPressed(int key) {
 		genMaze();
 	}
 
-} // end keyPressed
+}  // end keyPressed
 
 //--------------------------------------------------------------
-void ofApp::keyReleased(int key) {
-
-}
+void ofApp::keyReleased(int key) {}
 
 //--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y) {
-
-}
+void ofApp::mouseMoved(int x, int y) {}
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button) {
-
-}
+void ofApp::mouseDragged(int x, int y, int button) {}
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button) {
-
-}
+void ofApp::mousePressed(int x, int y, int button) {}
 
 //--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button) {
-
-}
+void ofApp::mouseReleased(int x, int y, int button) {}
 
 //--------------------------------------------------------------
-void ofApp::windowResized(int w, int h) {
-
-}
+void ofApp::windowResized(int w, int h) {}
 
 //--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg) {
-
-}
+void ofApp::gotMessage(ofMessage msg) {}
 
 //--------------------------------------------------------------
-void ofApp::dragEvent(ofDragInfo dragInfo) {
+void ofApp::dragEvent(ofDragInfo dragInfo) {}
 
-}
-
-bool ofApp::genMaze() 
-{
+//Eller's algorithm을 적용해 mage를 generate하는 함수이다.
+bool ofApp::genMaze() {
 	int i, j;
 	int N, M;
 	int areaCnt = 0;
 	srand(time(NULL));
 
-	//N*M, 미로의 크기 설정
-	N = 20; M = 20;
+	// N*M, 미로의 크기 설정
+	N = 20;
+	M = 20;
 
 	//영역, 경계에 관한 2차원 배열 2개 동적 할당
 	int** area = (int**)malloc(sizeof(int*) * M);
@@ -453,7 +426,7 @@ bool ofApp::genMaze()
 	}
 
 	int vectorCnt = 0;
-	//형식에 맞게 출력
+	//형식에 맞게 저장
 	for (i = 0; i < M; i++) {
 		for (j = 0; j < N; j++) {
 			gen_maze[vectorCnt] += "+";
@@ -496,9 +469,9 @@ bool ofApp::genMaze()
 	}
 	free(V_border);
 
-	//DEBUG CODE
+	// DEBUG CODE
 	cout << "Generated a new maze :" << endl;
-	for (int it = 0; it < 41;it++) {
+	for (int it = 0; it < 41; it++) {
 		cout << gen_maze[it] << endl;
 	}
 
@@ -507,38 +480,39 @@ bool ofApp::genMaze()
 }
 
 //생성한 미로를 적절한 자료구조로 저장하는 함수
-bool ofApp::setMaze()
-{
+bool ofApp::setMaze() {
 	isOpen = 1;
 	//새로운 미로 생성 시 기존 큐 초기화
 	while (!q.empty()) q.pop();
 
 	HEIGHT = WIDTH = 0;
-	input = (char**)malloc(sizeof(char*));		//미로 그리기 위한 정보 저장
-	maze_graph = (int**)malloc(sizeof(int*));	//BFS 탐색을 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
-	
+	input = (char**)malloc(sizeof(char*));  //미로 그리기 위한 정보 저장
+	maze_graph = (int**)malloc(sizeof(
+		int*));  // BFS 탐색을 위한 미로 정보 저장. 벽은 1, 공간은 0으로 나타냄
+
 	int gen_maze_size = 41;
 	cout << "Set a new maze as bit-form:" << endl;
-	for (int it = 0; it< gen_maze_size; it++)
-	{
+	for (int it = 0; it < gen_maze_size; it++) {
 		string line = gen_maze[it];
 		//첫 번째 loop에서 WIDTH 정보 저장
-		if (it ==0 ) WIDTH = line.length();
+		if (it == 0) WIDTH = line.length();
 
 		//새 줄 입력받을 때마다 미로 정보 저장 array size 재할당
 		input = (char**)realloc(input, sizeof(char*) * (HEIGHT + 1));
 		maze_graph = (int**)realloc(maze_graph, sizeof(int*) * (HEIGHT + 1));
-		input[HEIGHT] = (char*)malloc(sizeof(char)*WIDTH);
-		maze_graph[HEIGHT] = (int*)malloc(sizeof(int)*WIDTH);
+		input[HEIGHT] = (char*)malloc(sizeof(char) * WIDTH);
+		maze_graph[HEIGHT] = (int*)malloc(sizeof(int) * WIDTH);
 		//하나의 행 읽어서 저장
-		for (int i = 0;i < WIDTH;i++) {
+		for (int i = 0; i < WIDTH; i++) {
 			input[HEIGHT][i] = line[i];
-			if (line[i] == ' ') maze_graph[HEIGHT][i] = 0;
-			else maze_graph[HEIGHT][i] = 1;
+			if (line[i] == ' ')
+				maze_graph[HEIGHT][i] = 0;
+			else
+				maze_graph[HEIGHT][i] = 1;
 		}
 
-		//maze_graph이 잘 저장되는지 출력하는 Debug code
-		for (int i = 0;i < WIDTH;i++) {
+		// maze_graph이 잘 저장되는지 출력하는 Debug code
+		for (int i = 0; i < WIDTH; i++) {
 			cout << maze_graph[HEIGHT][i];
 		}
 		cout << endl;
@@ -546,33 +520,35 @@ bool ofApp::setMaze()
 	}
 
 	//미로 다 읽은 후 HEIGHT*WIDTH만큼 visited 메모리 할당
-	visited = (int**)malloc(sizeof(int*)*HEIGHT);
-	for (int i = 0;i < HEIGHT;i++) visited[i] = (int*)malloc(sizeof(int)*WIDTH);
+	visited = (int**)malloc(sizeof(int*) * HEIGHT);
+	for (int i = 0; i < HEIGHT; i++)
+		visited[i] = (int*)malloc(sizeof(int) * WIDTH);
 
+	//미로 생성 후 좌표별로 BFS_distance를 게산하기 위해 BFS() 호출
 	BFS();
 	return true;
 }
 
+//사용한 메모리를 해제하는 함수
 void ofApp::freeMemory() {
-	// malloc한 memory를 free해주는 함수
-	for (int i = 0;i < HEIGHT;i++) {
+	for (int i = 0; i < HEIGHT; i++) {
 		free(input[i]);
 		free(maze_graph[i]);
 	}
 	free(input);
 	free(maze_graph);
 	if (visited) {
-		for (int i = 0;i < HEIGHT;i++) free(visited[i]);
+		for (int i = 0; i < HEIGHT; i++) free(visited[i]);
 		free(visited);
 	}
 }
 
-//Heap에 삽입하는 함수 구현
+//BFS distance와 미로의 좌표를 삽입해 Heap을 구성하는 함수
 void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
 	elementCnt++;
 	int idx = elementCnt;
 
-	//max_heap에 Element 삽입
+	// max_heap에 Element 삽입
 	while (insertElement.first > max_heap[idx / 2].first && idx != 1) {
 		max_heap[idx] = max_heap[idx / 2];
 		idx /= 2;
@@ -580,13 +556,11 @@ void ofApp::insertHeap(pair<int, pair<int, int>> insertElement) {
 	max_heap[idx] = insertElement;
 }
 
-//Gem 배치
-void ofApp::placeGem()
-{
+//Heap sort를 수행해, 내림차순으로 정렬된 결과를 gems 변수에 저장하는 함수
+void ofApp::placeGem() {
 	int t = elementCnt;
-	cout << elementCnt << endl;
-	for (int i = 0;i < elementCnt; i++) {
-		//Configure Gem data
+	for (int i = 0; i < elementCnt; i++) {
+		// Configure Gem data
 		int bfsD = max_heap[1].first;
 		int row = max_heap[1].second.first;
 		int col = max_heap[1].second.second;
@@ -599,7 +573,8 @@ void ofApp::placeGem()
 		int parent = 1;
 		int child = 2;
 		while (child <= t) {
-			if ((child < t) && (max_heap[child].first < max_heap[child + 1].first)) child++;
+			if ((child < t) && (max_heap[child].first < max_heap[child + 1].first))
+				child++;
 			if (max_heap[child].first <= temp.first) break;
 
 			max_heap[parent] = max_heap[child];
@@ -611,8 +586,8 @@ void ofApp::placeGem()
 	isGem = 1;
 }
 
-void ofApp::drawGem()
-{
+//화면에 Gem을 직접 출력하는 함수, BFS distance에 따라 10개 색으로 나누어 출력
+void ofApp::drawGem() {
 	float D1 = gems[1].first * 0.1;
 	float D2 = gems[1].first * 0.2;
 	float D3 = gems[1].first * 0.3;
@@ -622,17 +597,16 @@ void ofApp::drawGem()
 	float D7 = gems[1].first * 0.7;
 	float D8 = gems[1].first * 0.8;
 	float D9 = gems[1].first * 0.9;
-	for (int i = 0;i < elementCnt; i++) {
+	for (int i = 0; i < elementCnt; i++) {
 		int bfsD = gems[i].first;
 		int row = gems[i].second.first;
 		int col = gems[i].second.second;
-		
 
 		if (bfsD > D9) {
 			ofSetColor(179, 57, 57);
 			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
-		else if (bfsD  > D8) {
+		else if (bfsD > D8) {
 			ofSetColor(255, 82, 82);
 			ofDrawCircle(offset_x + col * XS, offset_y + row * XS, dotScale);
 		}
@@ -671,24 +645,25 @@ void ofApp::drawGem()
 	}
 }
 
-//BFS탐색을 하는 함수
-bool ofApp::BFS()
-{
+// BFS탐색을 수행해 결과를 자료구조에 저장하는 함수
+bool ofApp::BFS() {
 	int R_col[4] = { 0, 1, 0, -1 };
 	int C_col[4] = { 1, 0, -1, 0 };
 
-	//네 꼭짓점에 대해 반복
+	//미로의 네 꼭짓점에 대해 반복
 	pair<int, int> start[4] = { make_pair(1, 1), make_pair(1, WIDTH - 2), make_pair(HEIGHT - 2, WIDTH - 2), make_pair(HEIGHT - 2, 1) };
 	pair<int, int> target[4] = { make_pair(HEIGHT - 2, WIDTH - 2), make_pair(HEIGHT - 2, 1), make_pair(1, 1), make_pair(1, WIDTH - 2) };
 
 	for (int it = 0; it < 4; it++) {
+		//탐색 전 Queue, 방문 여부 초기화
 		while (!q.empty()) q.pop();
-		for (int i = 0;i < HEIGHT;i++) {
-			for (int j = 0;j < WIDTH;j++) {
+		for (int i = 0; i < HEIGHT; i++) {
+			for (int j = 0; j < WIDTH; j++) {
 				visited[i][j] = 0;
 			}
 		}
 
+		//BFS 탐색 시작점에 대한 처리
 		visited[start[it].first][start[it].second] = 1;
 		q.push(make_pair(start[it].first, start[it].second));
 
@@ -701,16 +676,18 @@ bool ofApp::BFS()
 			q.pop();
 
 			//네 가지 방향에 대해 방문하지 않았다면 queue에 push
-			for (int i = 0;i < 4;i++) {
+			for (int i = 0; i < 4; i++) {
 				int next_R = curr_R + R_col[i];
 				int next_C = curr_C + C_col[i];
-				if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH) continue;	//경계값 체크, 범위 벗어나면 pass
+				if (next_R < 0 || next_R >= HEIGHT || next_C < 0 || next_C >= WIDTH)
+					continue;  //경계값 체크, 범위 벗어나면 pass
 
-				//아직 방문하지 않았고, 이동할 수 있는 미로인 경우
+				  //아직 방문하지 않았고, 이동할 수 있는 미로인 경우
 				if (!visited[next_R][next_C] && !maze_graph[next_R][next_C]) {
-					visited[next_R][next_C] = 1;							//방문 표시
-					q.push(make_pair(next_R, next_C));						//enqueue
-					//next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만 가고 칸까지는 가지 않는 경우 제외)
+					visited[next_R][next_C] = 1;        //방문 표시
+					q.push(make_pair(next_R, next_C));  // enqueue
+					// next 좌표가 경계값이 아닌, 칸인 경우에만 경로에 추가함. (벽까지만
+					// 가고 칸까지는 가지 않는 경우 제외)
 					if (next_R % 2 == 1 && next_C % 2 == 1) {
 						bfs_dis[next_R][next_C] += distance;
 					}
@@ -719,38 +696,47 @@ bool ofApp::BFS()
 		}
 	}
 
-	for (int i = 0;i < HEIGHT;i++) {
-		for (int j = 0;j < WIDTH;j++) {
+	//탐색한 결과를 Heap에 삽입하기 위한 함수 호출
+	assignBFSDtoHeap();
+	return true;
+}
+
+//BFS 탐색 결과를 Heap에 삽입하는 함수
+void ofApp::assignBFSDtoHeap()
+{
+	for (int i = 0; i < HEIGHT; i++) {
+		for (int j = 0; j < WIDTH; j++) {
 			if (i % 2 == 1 && j % 2 == 1) {
 				insertHeap(make_pair(bfs_dis[i][j], make_pair(i, j)));
 			}
 		}
 	}
 
-	//Gem 배치 함수 호출
+	// Gem 배치 함수 호출
 	placeGem();
-
-	return true;
 }
 
-void ofApp::mazeRegen()
-{
-	//전역 변수 및 메모리 초기화
+//다시 새로운 미로를 생성하기 위한 초기화 및 미로 재생성 함수
+void ofApp::mazeRegen() {
+	//한 번의 cycle에서 사용한 메모리 초기화
 	freeMemory();
-	for (int i = 0;i < 41;i++) {
+	for (int i = 0; i < 41; i++) {
 		gen_maze[i] = "";
 	}
-	for (int i = 0;i < 2000;i++) {
+	for (int i = 0; i < 2000; i++) {
 		max_heap[i] = make_pair(0, make_pair(0, 0));
 		gems[i] = make_pair(0, make_pair(0, 0));
 	}
 	memset(bfs_dis, 0, sizeof(bfs_dis));
+
+	//전역 변수 초기화
 	elementCnt = 0;
 	dotScale = 15;
 	dotDwindleFlag = 0;
 	startCnt = 0;
 	bounceCnt = 0;
 	growRapid = false;
+
 	//미로 재생성
 	genMaze();
 }
