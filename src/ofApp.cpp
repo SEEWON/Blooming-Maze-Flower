@@ -18,8 +18,13 @@ pair<int, pair<int, int>> max_heap[2000]; //first에는 heap의 BFS거리, second에는
 int bfs_dis[50][50] = { 0 };
 pair<int, pair<int, int>> gems[2000]; //first에는 heap의 BFS거리, second에는 좌표를 넣음
 int elementCnt = 0;
+
+//Animation 관련 변수
 float dotScale = 15;
-bool dotGrowFlag = 0;
+bool dotDwindleFlag = false;
+bool growRapid = false;
+int bounceCnt = 0;
+int startCnt = 0;
 
 
 //--------------------------------------------------------------
@@ -106,23 +111,38 @@ void ofApp::appMenuFunction(string title, bool bChecked) {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	/*
-	//숨쉬기 효과
-	dotScale += 0.2;		//always
-	if (dotGrowFlag) {		//if flag
-		dotScale -= 0.4;
+	if (isGem) {
+		startCnt++;
+
+		if (10 < startCnt) {		//잼들이 반짝일 시간 간격
+
+			if (bounceCnt > 2) {
+				growRapid = true;
+			}
+			//Bloom 효과
+			if (growRapid) dotScale += 3;
+			if (dotScale > 70) dotScale += 6;
+			if (dotScale > 150) {
+				mazeRegen();
+			}
+
+			//숨쉬기 효과
+			dotScale += 0.4;		//always
+			if (dotDwindleFlag) {		//if flag
+				dotScale -= 0.81;
+			}
+			if (dotScale >= 18.2) {	//반짝일 때 얼마만큼 커지는지
+				dotDwindleFlag = 1;
+			}
+			if (dotScale < 15) {
+				dotDwindleFlag = 0;
+				bounceCnt++;
+				startCnt = 0;
+				cout << bounceCnt << endl;
+			}
+
+		}
 	}
-	if (dotScale < 10) dotGrowFlag = 0;
-	if (dotScale > 15) dotGrowFlag = 1;
-	*/
-
-	//커지는 효과
-	if(isGem) dotScale += 0.3;
-
-	if (dotScale > 20) {
-		mazeRegen();
-	}
-
 }
 
 
@@ -724,12 +744,13 @@ void ofApp::mazeRegen()
 		max_heap[i] = make_pair(0, make_pair(0, 0));
 		gems[i] = make_pair(0, make_pair(0, 0));
 	}
-	//memset(max_heap, 0, sizeof(max_heap));
-	//memset(gems, 0, sizeof(gems));
 	memset(bfs_dis, 0, sizeof(bfs_dis));
 	elementCnt = 0;
 	dotScale = 15;
-	dotGrowFlag = 0;
+	dotDwindleFlag = 0;
+	startCnt = 0;
+	bounceCnt = 0;
+	growRapid = false;
 	//미로 재생성
 	genMaze();
 }
